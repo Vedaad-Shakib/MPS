@@ -1,3 +1,5 @@
 # compiled	
 MPS
 *.out
+*.dat
+*.pyc
