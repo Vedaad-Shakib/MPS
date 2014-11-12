@@ -155,22 +155,13 @@ int main() {
   double		*ghostPoints;	/* an array of ghost points			  */
   double		*ghostCorners;	/* an array of ghost corners		*/
   double		*cornersNDirs;	/* normal directions at corner points		  */
-  double		 nx;	        /* normal in x					  */
-  double		 ny;      	/* normal in y					  */
   double		 tmp;	        /* a temporary real		                  */
-  int			 n1;	        /* node of a segment				  */
-  int			 n2;	        /* node of a segment				  */
-  int			 i1;            /* the id of a corner */
-  int			 i2;            /* the id of a corner */
   int			 nWallPoints;	/* number of current wall points		  */
   int			 maxWallPoints;	/* maximum wall points		                  */
   int			 maxGhostPoints;/* maximum ghost points 		          */
   double		 dx;	        /* change in x			                  */
   double		 dy;	        /* change in y			                  */
-  double		 px;	        /* the x coordinate of a point                    */
-  double		 py;	        /* the y coordinate of a point                    */
   int			 nSegs;	        /* number of local wall intervals between points  */
-  int			 nGhostSegs;	/* number of local intervals between ghost points */
   int			 nWallSegments;	/* the number of glocal wall segmnets             */
   int			 nCorners;	/* the number of global corners                   */
   int			 nGhostPoints;	/* the number of global ghost points              */ 
@@ -202,7 +193,7 @@ int main() {
 
   wallPointsHd   = mpsNewWallPoints();
   
-  ghostPoints	 = memNew(double, sizeof(double) * 2);	// nDims is 2 for ghost poinnnnnts
+  ghostPoints	 = memNew(double, sizeof(double) * 2);	// nDims is 2 for ghost points
 
   for (int i = 0; i < nWallSegments; i++) {
     fscanf(fin, "%le %le %le %le", 
@@ -210,84 +201,24 @@ int main() {
 	   &wallSegments[4*i+2], &wallSegments[4*i+3]); 
   }
 
-/*------------------------------------------------------------------------------
- * Create the corner points and compute their normal directions
- *------------------------------------------------------------------------------
- */
-
+  // create the corners from wall segments list
   for (int i = 0; i < nWallSegments; i++) {
     mpsGetCornerId(cornersHd, wallSegments[4*i+0], wallSegments[4*i+1]);
     mpsGetCornerId(cornersHd, wallSegments[4*i+2], wallSegments[4*i+3]);
   }
 
-  // remove
+  // remove later
   outCrd("corners.dat", cornersHd->cornerCrds, cornersHd->nCorners);
 
   nCorners	= mpsGetNCorners(cornersHd);
 
+  // initialize ghost corners
   ghostCorners	= memNewZero(double, 2 * nCorners);
   mpsGhostCorners(cornersHd, wallSegments, nWallSegments, ghostCorners,
       nCorners, r);
 
-  // remove
+  // remove later
   outCrd("ghost_corners.dat", ghostCorners, nCorners);
-
-  cornersNDirs	= memNewZero(double, 2 * nCorners);
-
-  for (int i = 0; i < nWallSegments; i++) {
-    i1	= mpsGetCornerId(cornersHd, wallSegments[4*i+0], wallSegments[4*i+1]);
-    i2	= mpsGetCornerId(cornersHd, wallSegments[4*i+2], wallSegments[4*i+3]);
-    dx	= (wallSegments[4*i+2] - wallSegments[4*i+0]);
-    dy	= (wallSegments[4*i+3] - wallSegments[4*i+1]);
-    tmp	= sqrt(dx*dx + dy*dy);
-
-    // calculate normal direction or concatenate existing normal direction
-    if (cornersNDirs[2*i1+0] == 0 && cornersNDirs[2*i1+1]) {
-      cornersNDirs[2*i1+0] += -dy / tmp;
-      cornersNDirs[2*i1+1] += +dx / tmp;
-    } else {
-      double nx1, ny1, nx2, ny2, d;
-      nx1 = cornersNDirs[2*i1+0];
-      ny1 = cornersNDirs[2*i1+1];
-      nx2 = -dy / tmp;
-      ny2 = +dx / tmp;
-      d = nx1*ny2 - nx2*ny1;
-      
-      cornersNDirs[2*i1+0] = (+ny2*r - ny1*r) / d;
-      cornersNDirs[2*i1+1] = (-nx2*r + nx1*r) / d;
-    }
-
-    if (cornersNDirs[2*i2+0] == 0 && cornersNDirs[2*i2+1] == 0) {
-      cornersNDirs[2*i2+0] += -dy / tmp;
-      cornersNDirs[2*i2+1] += +dx / tmp;
-    } else {
-      double nx1, ny1, nx2, ny2, d;
-      nx1 = cornersNDirs[2*i2+0];
-      ny1 = cornersNDirs[2*i2+1];
-      nx2 = -dy / tmp;
-      ny2 = +dx / tmp;
-      d = nx1*ny2 - nx2*ny1;
-
-      cornersNDirs[2*i1+0] = (+ny2*r - ny1*r) / d;
-      cornersNDirs[2*i1+1] = (-nx2*r + nx1*r) / d;
-    }
-  }
-
-  /*  // normalize the direction vector
-  for (int i = 0; i < nCorners; i++) {
-    dx	= cornersNDirs[2*i+0];
-    dy	= cornersNDirs[2*i+1];
-    tmp	= sqrt(dx*dx + dy*dy);
-    cornersNDirs[2*i+0]	/= tmp;
-    cornersNDirs[2*i+1]	/= tmp;
-    }*/
-
-  // the following is a hack for plotting purposes.  Must be removed
-  for (int i = 0; i < nCorners; i++) {
-    cornersNDirs[2*i+0]	= cornersHd->cornerCrds[2*i+0] + r * cornersNDirs[2*i+0];
-    cornersNDirs[2*i+1]	= cornersHd->cornerCrds[2*i+1] + r * cornersNDirs[2*i+1];
-  }
-  outCrd("ndirs.dat", cornersNDirs, cornersHd->nCorners);
 
   // initiate the wall points with all corners
   memResize(double, wallPointsHd->wallPointCrds, 0, cornersHd->nCorners+1, maxWallPoints, 2);
