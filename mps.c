@@ -1,12 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include <strings.h>
 
 #include "mps.h"
 
 /*******************************************************************************
  * "outCrd": output the coordinates into a file
+ *
+ * Parameters:
+ *            fileName: the fileName of the file to be written
+ *            crd: the list of coordinates to be outputted
+ *            nPoints: the length of crd
  *******************************************************************************
  */
 void outCrd(char *fileName,double *crd, int nPoints) {
@@ -22,6 +28,12 @@ void outCrd(char *fileName,double *crd, int nPoints) {
 
 /*******************************************************************************
  * "contains": checks if array corners already contains point x,y
+ *
+ * Parameters:
+ *            corners: a pointer to a list of corners through which the function searches
+ *            nCorners: the length of corners
+ *            x: the x coordinate of the point to search for
+ *            y: the y coordinate of the point to search for
  *******************************************************************************
  */
 int contains(double *corners, int nCorners, double x, double y) {
@@ -34,6 +46,12 @@ int contains(double *corners, int nCorners, double x, double y) {
 
 /*******************************************************************************
  * "dist": returns the distance between two points
+ *
+ * Parameters:
+ *            x1: the x coordinate of the first point
+ *            y1: the y coordinate of the first point
+ *            x2: the x coordinate of the second point
+ *            y2: the y coordinate of the second point
  *******************************************************************************
  */
 double dist(int x1, int y1, int x2, int y2) {
@@ -41,44 +59,131 @@ double dist(int x1, int y1, int x2, int y2) {
 }
 
 /*******************************************************************************
- * "main": main routine
+ * "mpsGhostCorners": Compute the ghost corners of a specific set of wall points
+ *
+ * Parameters:
+ *            cornersHd: a pointer to a struct of corner points
+ *            wallSegments: the specified list of wallsegments from which to calculate the corner points
+ *            nWallSegments: the number of wall segments
+ *            ghostCorners: a pointer to an array where the determined ghost points will be stored
+ *            nCorners: the number of corners 
+ *            radius: the radius of influence
+ *******************************************************************************
+ */
+void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegments,
+		     double *ghostCorners, int nCorners, double	radius) {
+
+    double	*cornerCrds;	/* corner coordinates		*/
+    double	*cornerNDirs;	/* corner normal directions	*/
+    double	 dx;		/* delta x			*/
+    double	 dy;		/* delta y			*/
+    double	 nx;		/* normal dir x			*/
+    double	 ny;		/* normal dir y			*/
+    double	 nx1;		/* normal dir x			*/
+    double	 nx2;		/* normal dir x			*/
+    double	 ny1;		/* normal dir y			*/
+    double	 ny2;		/* normal dir y			*/
+    double	 tmp;		/* a temporary var		*/
+    int		 i1;		/* corner index 1		*/
+    int		 i2;		/* corner index 2		*/
+
+    // localize data
+    cornerCrds	= cornersHd->cornerCrds;
+
+    // allocate memory
+    cornerNDirs	= memNewZero(double, 4 * nCorners);
+
+    // computer corner normal directions
+    for (int i = 0; i < nWallSegments; i++) {
+	i1  = mpsGetCornerId(cornersHd, wallSegments[4*i+0], wallSegments[4*i+1]);
+	i2  = mpsGetCornerId(cornersHd, wallSegments[4*i+2], wallSegments[4*i+3]);
+	dx  = (wallSegments[4*i+2] - wallSegments[4*i+0]);
+	dy  = (wallSegments[4*i+3] - wallSegments[4*i+1]);
+	tmp = sqrt(dx*dx + dy*dy);
+	nx  = -dy / tmp;
+	ny  = +dx / tmp;
+	if (cornerNDirs[4*i1+0] == 0 && cornerNDirs[4*i1+1] == 0) {
+	    cornerNDirs[4*i1+0]	= nx;
+	    cornerNDirs[4*i1+1]	= ny;
+	} else {
+	    cornerNDirs[4*i1+2]	= nx;
+	    cornerNDirs[4*i1+3]	= ny;
+	}
+
+	if (cornerNDirs[4*i2+0] == 0 && cornerNDirs[4*i2+1] == 0) {
+	    cornerNDirs[4*i2+0]	= nx;
+	    cornerNDirs[4*i2+1]	= ny;
+	} else {
+	    cornerNDirs[4*i2+2]	= nx;
+	    cornerNDirs[4*i2+3]	= ny;
+	}
+    }
+
+    // computer ghost corners
+    for (int i = 0; i < nCorners; i++) {
+	nx1 = cornerNDirs[4*i+0];
+	ny1 = cornerNDirs[4*i+1];
+	nx2 = cornerNDirs[4*i+2];
+	ny2 = cornerNDirs[4*i+3];
+
+	if (nx2 == 0 && ny2 == 0) {
+	    nx = nx1;
+	    ny = ny1;
+	} else {
+	    tmp	= nx1 * ny2 - nx2 * ny1;
+	    nx	= (+ny2 - ny1) / tmp;
+	    ny	= (-nx2 + nx1) / tmp;
+	}
+	ghostCorners[2*i+0] = cornerCrds[2*i+0] + radius * nx;
+	ghostCorners[2*i+1] = cornerCrds[2*i+1] + radius * ny;
+    }
+
+    // free memory
+    memFree(cornerNDirs);
+}
+
+/*******************************************************************************
+ * "main": main function
  *******************************************************************************
  */
 int main() {
-  double	 radius;	/* the radius of influence of points		  */
-  double	 wallSpacing;	/* the rounded spacing between wall points	  */
-  double	*wallSegments;	/* an array of wall segments                      */
-  double	*corners;	/* an array of corner points		          */
-  double	*wallPoints;	/* an array of wall points		          */
-  double	*ghostPoints;   /* an array of ghost points			  */
-  double	*cornersNDirs;	/* normal directions at corner points		  */
-  double	 nx;		/* normal in x					  */
-  double	 ny;		/* normal in y					  */
-  double	 tmp;		/* a temporary real		                  */
-  int		 n1;		/* node of a segment				  */
-  int		 n2;		/* node of a segment				  */
-  int		 nWallPoints;	/* number of current wall points		  */
-  int		 maxWallPoints;	/* maximum wall points		                  */
-  int		 maxGhostPoints;/* maximum ghost points 		          */
-  double	 dx;		/* change in x			                  */
-  double	 dy;		/* change in y			                  */
-  double         dxGhost;	/* change in x in ghost points                    */
-  double	 dyGhost;	/* change in y in ghost points                    */
-  int		 nSegs;	        /* number of local wall intervals between points  */
-  int		 nGhostSegs;	/* number of local intervals between ghost points */
-  int		 nWallSegments; /* the number of glocal wall segmnets             */
-  int		 nCorners;      /* the number of global corners                   */
-  int		 nGhostPoints;  /* the number of global ghost points              */ 
-  MpsCornersHd	 cornersHd;	/* corners sturcture				  */
-  MpsWallPointsHd wallPointsHd; /* wallPoints structure                           */
-  FILE		*fin;           /* input file                                     */
-  FILE		*fout;          /* output file                                    */
+  double		 r;	        /* the radius of influence of points		  */
+  double		 wallSpacing;	/* the rounded spacing between wall points	  */
+  double		*wallSegments;	/* an array of wall segments                      */
+  double		*corners;	/* an array of corner points		          */
+  double		*wallPoints;	/* an array of wall points		          */
+  double		*ghostPoints;	/* an array of ghost points			  */
+  double		*ghostCorners;	/* an array of ghost corners		*/
+  double		*cornersNDirs;	/* normal directions at corner points		  */
+  double		 nx;	        /* normal in x					  */
+  double		 ny;      	/* normal in y					  */
+  double		 tmp;	        /* a temporary real		                  */
+  int			 n1;	        /* node of a segment				  */
+  int			 n2;	        /* node of a segment				  */
+  int			 i1;            /* the id of a corner */
+  int			 i2;            /* the id of a corner */
+  int			 nWallPoints;	/* number of current wall points		  */
+  int			 maxWallPoints;	/* maximum wall points		                  */
+  int			 maxGhostPoints;/* maximum ghost points 		          */
+  double		 dx;	        /* change in x			                  */
+  double		 dy;	        /* change in y			                  */
+  double		 px;	        /* the x coordinate of a point                    */
+  double		 py;	        /* the y coordinate of a point                    */
+  int			 nSegs;	        /* number of local wall intervals between points  */
+  int			 nGhostSegs;	/* number of local intervals between ghost points */
+  int			 nWallSegments;	/* the number of glocal wall segmnets             */
+  int			 nCorners;	/* the number of global corners                   */
+  int			 nGhostPoints;	/* the number of global ghost points              */ 
+  MpsCornersHd		 cornersHd;	/* corners sturcture				  */
+  MpsWallPointsHd	 wallPointsHd;	/* wallPoints structure                           */
+  FILE			*fin;           /* input file                                     */
+  FILE			*fout;          /* output file                                    */
 
   fin  = fopen("mps.in", "r");
   fout = fopen("mps.out", "w");
 
   // input
-  fscanf(fin, "%lf", &radius);
+  fscanf(fin, "%lf", &r);
   fscanf(fin, "%lf", &wallSpacing);
   fscanf(fin, "%d",  &nWallSegments);
   
@@ -114,36 +219,73 @@ int main() {
     mpsGetCornerId(cornersHd, wallSegments[4*i+0], wallSegments[4*i+1]);
     mpsGetCornerId(cornersHd, wallSegments[4*i+2], wallSegments[4*i+3]);
   }
+
+  // remove
   outCrd("corners.dat", cornersHd->cornerCrds, cornersHd->nCorners);
 
   nCorners	= mpsGetNCorners(cornersHd);
+
+  ghostCorners	= memNewZero(double, 2 * nCorners);
+  mpsGhostCorners(cornersHd, wallSegments, nWallSegments, ghostCorners,
+      nCorners, r);
+
+  // remove
+  outCrd("ghost_corners.dat", ghostCorners, nCorners);
+
   cornersNDirs	= memNewZero(double, 2 * nCorners);
 
   for (int i = 0; i < nWallSegments; i++) {
-    n1	= mpsGetCornerId(cornersHd, wallSegments[4*i+0], wallSegments[4*i+1]);
-    n2	= mpsGetCornerId(cornersHd, wallSegments[4*i+2], wallSegments[4*i+3]);
+    i1	= mpsGetCornerId(cornersHd, wallSegments[4*i+0], wallSegments[4*i+1]);
+    i2	= mpsGetCornerId(cornersHd, wallSegments[4*i+2], wallSegments[4*i+3]);
     dx	= (wallSegments[4*i+2] - wallSegments[4*i+0]);
     dy	= (wallSegments[4*i+3] - wallSegments[4*i+1]);
     tmp	= sqrt(dx*dx + dy*dy);
-    cornersNDirs[2*n1+0]	+= -dy / tmp;
-    cornersNDirs[2*n1+1]	+= +dx / tmp;
-    cornersNDirs[2*n2+0]	+= -dy / tmp;
-    cornersNDirs[2*n2+1]	+= +dx / tmp;
+
+    // calculate normal direction or concatenate existing normal direction
+    if (cornersNDirs[2*i1+0] == 0 && cornersNDirs[2*i1+1]) {
+      cornersNDirs[2*i1+0] += -dy / tmp;
+      cornersNDirs[2*i1+1] += +dx / tmp;
+    } else {
+      double nx1, ny1, nx2, ny2, d;
+      nx1 = cornersNDirs[2*i1+0];
+      ny1 = cornersNDirs[2*i1+1];
+      nx2 = -dy / tmp;
+      ny2 = +dx / tmp;
+      d = nx1*ny2 - nx2*ny1;
+      
+      cornersNDirs[2*i1+0] = (+ny2*r - ny1*r) / d;
+      cornersNDirs[2*i1+1] = (-nx2*r + nx1*r) / d;
+    }
+
+    if (cornersNDirs[2*i2+0] == 0 && cornersNDirs[2*i2+1] == 0) {
+      cornersNDirs[2*i2+0] += -dy / tmp;
+      cornersNDirs[2*i2+1] += +dx / tmp;
+    } else {
+      double nx1, ny1, nx2, ny2, d;
+      nx1 = cornersNDirs[2*i2+0];
+      ny1 = cornersNDirs[2*i2+1];
+      nx2 = -dy / tmp;
+      ny2 = +dx / tmp;
+      d = nx1*ny2 - nx2*ny1;
+
+      cornersNDirs[2*i1+0] = (+ny2*r - ny1*r) / d;
+      cornersNDirs[2*i1+1] = (-nx2*r + nx1*r) / d;
+    }
   }
 
-  // normalize the direction vector
+  /*  // normalize the direction vector
   for (int i = 0; i < nCorners; i++) {
     dx	= cornersNDirs[2*i+0];
     dy	= cornersNDirs[2*i+1];
     tmp	= sqrt(dx*dx + dy*dy);
     cornersNDirs[2*i+0]	/= tmp;
     cornersNDirs[2*i+1]	/= tmp;
-  }
+    }*/
 
   // the following is a hack for plotting purposes.  Must be removed
   for (int i = 0; i < nCorners; i++) {
-    cornersNDirs[2*i+0]	= cornersHd->cornerCrds[2*i+0] + radius * cornersNDirs[2*i+0];
-    cornersNDirs[2*i+1]	= cornersHd->cornerCrds[2*i+1] + radius * cornersNDirs[2*i+1];
+    cornersNDirs[2*i+0]	= cornersHd->cornerCrds[2*i+0] + r * cornersNDirs[2*i+0];
+    cornersNDirs[2*i+1]	= cornersHd->cornerCrds[2*i+1] + r * cornersNDirs[2*i+1];
   }
   outCrd("ndirs.dat", cornersNDirs, cornersHd->nCorners);
 
@@ -176,23 +318,5 @@ int main() {
 
   return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

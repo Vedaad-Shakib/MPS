@@ -29,3 +29,4 @@
     ARRAY = ary;							\
   }
 
+#define	memFree(M)	free(M)
