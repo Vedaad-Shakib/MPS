@@ -65,13 +65,13 @@ double dist(int x1, int y1, int x2, int y2) {
  *            cornersHd: a pointer to a struct of corner points
  *            wallSegments: the specified list of wallsegments from which to calculate the corner points
  *            nWallSegments: the number of wall segments
- *            ghostCorners: a pointer to an array where the determined ghost points will be stored
- *            nCorners: the number of corners 
+ *            ghostPointsHd: a pointer to a struct of ghost point where the points will be stored
+ *            nGhostPoints: the number of ghost points needed to be stored 
  *            radius: the radius of influence
  *******************************************************************************
  */
 void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegments,
-		     double *ghostCorners, int nCorners, double	radius) {
+		     MpsGhostPointsHd ghostPointsHd, int nGhostPoints, double radius) {
 
     double	*cornerCrds;	/* corner coordinates		*/
     double	*cornerNDirs;	/* corner normal directions	*/
@@ -91,7 +91,7 @@ void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegm
     cornerCrds	= cornersHd->cornerCrds;
 
     // allocate memory
-    cornerNDirs	= memNewZero(double, 4 * nCorners);
+    cornerNDirs	= memNewZero(double, 4 * nGhostPoints);
 
     // computer corner normal directions
     for (int i = 0; i < nWallSegments; i++) {
@@ -120,7 +120,7 @@ void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegm
     }
 
     // computer ghost corners
-    for (int i = 0; i < nCorners; i++) {
+    for (int i = 0; i < nGhostPoints; i++) {
 	nx1 = cornerNDirs[4*i+0];
 	ny1 = cornerNDirs[4*i+1];
 	nx2 = cornerNDirs[4*i+2];
@@ -134,12 +134,54 @@ void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegm
 	    nx	= (+ny2 - ny1) / tmp;
 	    ny	= (-nx2 + nx1) / tmp;
 	}
-	ghostCorners[2*i+0] = cornerCrds[2*i+0] + radius * nx;
-	ghostCorners[2*i+1] = cornerCrds[2*i+1] + radius * ny;
+	ghostPointsHd->ghostPointCrds[2*i+0] = cornerCrds[2*i+0] + radius * nx;
+	ghostPointsHd->ghostPointCrds[2*i+1] = cornerCrds[2*i+1] + radius * ny;
     }
 
     // free memory
     memFree(cornerNDirs);
+}
+
+/*******************************************************************************
+ * "constructIntermediatePoints": adds the intermediate points between corner points,
+ *                                separated by wallSpacing units, to the outPoints array
+ *******************************************************************************
+ */
+void constructIntermediatePoints(double *cornerPoints, int *nCornerPoints, double **outPoints,
+				 int *nOutPoints, int *maxOutPoints, double wallSpacing) {
+
+  double	tmp;		/* a temporary variable */
+  int		nSegs;		/* the number of wall segments */
+  double	dx;		/* the change in x */
+  double	dy;		/* the change in y */
+  int		maxPoints;/* localized data */
+  int           nPoints ;       /* No. of points */
+  double*	points ;	/* array of the points	*/
+
+  maxPoints = *maxOutPoints;
+  nPoints = *nOutPoints ;
+  points = *outPoints ;
+  
+  for (int i = 0; i < *nCornerPoints; i++) {
+
+    tmp   = dist(cornerPoints[4*i+0], cornerPoints[4*i+1], 
+		 cornerPoints[4*i+2], cornerPoints[4*i+3]);
+    nSegs = ceil(tmp / wallSpacing);
+    dx	  = (cornerPoints[4*i+2] - cornerPoints[4*i+0]) / nSegs;
+    dy	  = (cornerPoints[4*i+3] - cornerPoints[4*i+1]) / nSegs;
+
+    memResize(double, points, nPoints, nPoints + nSegs+1, maxPoints, 2);
+
+    for (int j = 1; j < nSegs; j++) {
+      points[2*nPoints+0] = cornerPoints[4*i+0] + j * dx;
+      points[2*nPoints+1] = cornerPoints[4*i+1] + j * dy;
+      nPoints++;
+    }
+  }
+
+  *maxOutPoints = maxPoints;
+  *nOutPoints = nPoints ;
+  *outPoints = points ;
 }
 
 /*******************************************************************************
@@ -153,11 +195,9 @@ int main() {
   double		*corners;	/* an array of corner points		          */
   double		*wallPoints;	/* an array of wall points		          */
   double		*ghostPoints;	/* an array of ghost points			  */
-  double		*ghostCorners;	/* an array of ghost corners		*/
+  double		*ghostCorners;	/* an array of ghost corners		          */
   double		*cornersNDirs;	/* normal directions at corner points		  */
   double		 tmp;	        /* a temporary real		                  */
-  int			 nWallPoints;	/* number of current wall points		  */
-  int			 maxWallPoints;	/* maximum wall points		                  */
   int			 maxGhostPoints;/* maximum ghost points 		          */
   double		 dx;	        /* change in x			                  */
   double		 dy;	        /* change in y			                  */
@@ -167,6 +207,7 @@ int main() {
   int			 nGhostPoints;	/* the number of global ghost points              */ 
   MpsCornersHd		 cornersHd;	/* corners sturcture				  */
   MpsWallPointsHd	 wallPointsHd;	/* wallPoints structure                           */
+  MpsGhostPointsHd       ghostPointsHd; /* ghostPoints structure                          */
   FILE			*fin;           /* input file                                     */
   FILE			*fout;          /* output file                                    */
 
@@ -179,22 +220,14 @@ int main() {
   fscanf(fin, "%d",  &nWallSegments);
   
   // initialize wall and ghost points
-  nWallPoints	 = 0;
-  maxWallPoints	 = 0;
-  nGhostPoints   = 0;
-  maxGhostPoints = 0;
-  wallPoints	 = NULL;
-  ghostPoints    = NULL;
-  nCorners	 = 0;
-
   wallSegments	 = memNew(double, sizeof(double) * 4);	// initially, four points; resize later
 
   cornersHd	 = mpsNewCorners();
 
   wallPointsHd   = mpsNewWallPoints();
   
-  ghostPoints	 = memNew(double, sizeof(double) * 2);	// nDims is 2 for ghost points
-
+  ghostPointsHd = mpsNewGhostPoints();
+  
   for (int i = 0; i < nWallSegments; i++) {
     fscanf(fin, "%le %le %le %le", 
 	   &wallSegments[4*i+0], &wallSegments[4*i+1], 
@@ -210,18 +243,17 @@ int main() {
   // remove later
   outCrd("corners.dat", cornersHd->cornerCrds, cornersHd->nCorners);
 
-  nCorners	= mpsGetNCorners(cornersHd);
+  nCorners = mpsGetNCorners(cornersHd);
 
   // initialize ghost corners
-  ghostCorners	= memNewZero(double, 2 * nCorners);
-  mpsGhostCorners(cornersHd, wallSegments, nWallSegments, ghostCorners,
+  mpsGhostCorners(cornersHd, wallSegments, nWallSegments, ghostPointsHd,
       nCorners, r);
 
   // remove later
-  outCrd("ghost_corners.dat", ghostCorners, nCorners);
+  outCrd("ghost_corners.dat", ghostPointsHd->ghostPointCrds, nCorners);
 
   // initiate the wall points with all corners
-  memResize(double, wallPointsHd->wallPointCrds, 0, cornersHd->nCorners+1, maxWallPoints, 2);
+  memResize(double, wallPointsHd->wallPointCrds, 0, cornersHd->nCorners+1, wallPointsHd->maxWallPoints, 2);
   for (int i = 0; i < cornersHd->nCorners; i++) {
     wallPointsHd->wallPointCrds[2*i+0] = cornersHd->cornerCrds[2*i+0];
     wallPointsHd->wallPointCrds[2*i+1] = cornersHd->cornerCrds[2*i+1];
@@ -229,21 +261,27 @@ int main() {
   }
 
   // for each wall segment, add the intermediate points
-  for (int i = 0; i < nWallSegments; i++) {
+
+  constructIntermediatePoints(wallSegments, &nWallSegments, &(wallPointsHd->wallPointCrds), &(wallPointsHd->nWallPoints), &(wallPointsHd->maxWallPoints), wallSpacing);
+
+  // THIS FOR LOOP WORKS
+  // CONSTRUCTINTERMEDIATEPOINTS DOES NOT WORK
+
+  /*for (int i = 0; i < nWallSegments; i++) {
     tmp   = dist(wallSegments[4*i+0], wallSegments[4*i+1], 
 		 wallSegments[4*i+2], wallSegments[4*i+3]);
     nSegs = ceil(tmp / wallSpacing);
     dx	  = (wallSegments[4*i+2] - wallSegments[4*i+0]) / nSegs;
     dy	  = (wallSegments[4*i+3] - wallSegments[4*i+1]) / nSegs;
 
-    memResize(double, wallPointsHd->wallPointCrds, wallPointsHd->nWallPoints, wallPointsHd->nWallPoints + nSegs+1, maxWallPoints, 2);
+    memResize(double, wallPointsHd->wallPointCrds, wallPointsHd->nWallPoints, wallPointsHd->nWallPoints + nSegs+1, wallPointsHd->maxWallPoints, 2);
 
     for (int j = 1; j < nSegs; j++) {
       wallPointsHd->wallPointCrds[2*wallPointsHd->nWallPoints+0] = wallSegments[4*i+0] + j * dx;
       wallPointsHd->wallPointCrds[2*wallPointsHd->nWallPoints+1] = wallSegments[4*i+1] + j * dy;
       wallPointsHd->nWallPoints++;
     }
-  }
+    }*/
 
   outCrd("wallPoints.dat", wallPointsHd->wallPointCrds, wallPointsHd->nWallPoints);
 

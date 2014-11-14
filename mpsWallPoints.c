@@ -43,7 +43,7 @@ void mpsFreeWallPoints(MpsWallPointsHd wallPointsHd) {
  *******************************************************************************
  */
 int mpsGetWallPointId(MpsWallPointsHd	wallPointsHd, double x, double y) {
-    double	*wallPointCrds;	/* localized wall pointss  */
+    double	*wallPointCrds;	/* localized wall points  */
     int		 nWallPoints;	/* number of wall points        */
 
     // localize data
