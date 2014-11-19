@@ -39,7 +39,6 @@ def mpsPlot(data):
 
         # parse options
           # color
-
         color = findColor(i)
           # markersize
         markersize = findSize(i)

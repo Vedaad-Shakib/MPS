@@ -27,7 +27,7 @@ void outCrd(char *fileName,double *crd, int nPoints) {
 } 
 
 /*******************************************************************************
- * "contains": checks if array corners already contains point x,y
+ * "containsPoint": checks if array corners already contains point x,y
  *
  * Parameters:
  *            corners: a pointer to a list of corners through which the function searches
@@ -36,9 +36,29 @@ void outCrd(char *fileName,double *crd, int nPoints) {
  *            y: the y coordinate of the point to search for
  *******************************************************************************
  */
-int contains(double *corners, int nCorners, double x, double y) {
-  for (int i = 0; i < nCorners; i++) {
+int containsPoint(double *corners, int nCorners, double x, double y) {
+  for (int i = 0; i < nCorners; i+=2) {
     if (corners[2*i+0] == x && corners[2*i+1] == y) 
+      return 1;
+  }
+  return 0;
+}
+
+/*******************************************************************************
+ * "containsLine": checks if array corners already contains line x1 ,y1, x2, y2
+ *
+ * Parameters:
+ *            corners: a pointer to a list of corners through which the function searches
+ *            nCorners: the length of corners
+ *            x1: the x coordinate of the first point
+ *            y1: the y coordinate of the first point
+ *            x2: the x coordinate of the second point
+ *            y2: the y coordinate of the second point
+ *******************************************************************************
+ */
+int containsLine(double *wallSegments, int nWallSegments, double x1, double y1, double x2, double y2) {
+  for (int i = 0; i < nWallSegments; i++) {
+    if (wallSegments[4*i+0] == x1 && wallSegments[4*i+1] == y1 && wallSegments[4*i+2] == x2 && wallSegments[4*i+3] == y2) 
       return 1;
   }
   return 0;
@@ -242,6 +262,8 @@ int main() {
 	   &wallSegments[4*i+0], &wallSegments[4*i+1], 
 	   &wallSegments[4*i+2], &wallSegments[4*i+3]); 
   }
+ 
+  outCrd("wall_segments.dat", wallSegments, nWallSegments*2);
 
   // create the corners from wall segments list
   for (int i = 0; i < nWallSegments; i++) {
@@ -282,6 +304,10 @@ int main() {
   tmp = ghostPointsHd->nGhostPoints-1; // because it is changing in the for loop
 
   for (int i = 0; i < tmp; i++) {
+    // check if the ghost segment is an actual ghost segment or just a segment with two points from different segments
+    if (!containsLine(wallSegments, nWallSegments, cornersHd->cornerCrds[2*i+0], cornersHd->cornerCrds[2*i+1], cornersHd->cornerCrds[2*(i+1)+0], cornersHd->cornerCrds[2*(i+1)+1]))
+	  continue;
+
     tmp1 = dist(cornersHd->cornerCrds[2*i+0], cornersHd->cornerCrds[2*i+1],
 		ghostPointsHd->ghostPointCrds[2*i+0], ghostPointsHd->ghostPointCrds[2*i+1]);
     tmp2 = dist(cornersHd->cornerCrds[2*(i+1)+0], cornersHd->cornerCrds[2*(i+1)+1],
@@ -294,7 +320,7 @@ int main() {
     dx2 = (ghostPointsHd->ghostPointCrds[2*(i+1)+0] - cornersHd->cornerCrds[2*(i+1)+0]) / nSegs;
     dy2 = (ghostPointsHd->ghostPointCrds[2*(i+1)+1] - cornersHd->cornerCrds[2*(i+1)+1]) / nSegs;
 
-    // points inside the boundary of ghostCorners and wallPoints
+    // for each two corner and ghostPoint pairs, there are nSegs lines between them which comprise the ghost points
     for (int j = 1; j < nSegs+1; j++) {
       tmpArray[0] = cornersHd->cornerCrds[2*i+0] + j*dx1;
       tmpArray[1] = cornersHd->cornerCrds[2*i+1] + j*dy1;
