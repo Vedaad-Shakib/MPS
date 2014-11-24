@@ -7,6 +7,11 @@
 #include "mps.h"
 #include "uthash.h"
 
+#define true (1)
+#define false (0)
+
+typedef int bool;
+
 /*******************************************************************************
  * "outCrd": output the coordinates into a file
  *
@@ -180,7 +185,7 @@ void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegm
  */
 void constructIntermediatePoints(double *cornerPoints, int nCornerPoints, double **outPoints,
 				 int *nOutPoints, int *maxOutPoints, double wallSpacing,
-				 int containsStart, int containsEnd) {
+				 bool containsStart, bool containsEnd) {
   double	tmp;		/* a temporary variable */
   int		nSegs;		/* the number of wall segments */
   double	dx;		/* the change in x */
@@ -215,6 +220,48 @@ void constructIntermediatePoints(double *cornerPoints, int nCornerPoints, double
 }
 
 /*******************************************************************************
+ * "checkClosure": checks whether a list of boundaries are closed by ensuring
+ *                 that every start connects to one and only one end and that
+ *                 every end connects to one and only one start
+ *
+ * Parameters:
+ *            fluidBoundaries: a list of boundaries
+ *            nFluidBoundaries: the number of boundaries
+ *******************************************************************************
+ */
+bool checkClosure(double *fluidBoundaries, int nFluidBoundaries) {
+  int	x;	 /* x coordinate */
+  int	y;	 /* y coordinate */
+  int	counter; /* a counter    */
+
+  // check that every start point connects with only one end point
+  for (int i = 0; i < nFluidBoundaries; i++) {
+    x = fluidBoundaries[4*i+0];
+    y = fluidBoundaries[4*i+1];
+    counter = 0;
+    for (int j = 0; j < nFluidBoundaries; j++) {
+      if (x == fluidBoundaries[4*j+2] && y == fluidBoundaries[4*j+3])
+	counter++;
+    } 
+    if (counter != 1) return false;
+  }
+
+  // check that every end point connects with only one start point
+  for (int i = 0; i < nFluidBoundaries; i++) {
+    x = fluidBoundaries[4*i+2];
+    y = fluidBoundaries[4*i+3];
+    counter = 0;
+    for (int j = 0; j < nFluidBoundaries; j++) {
+      if (x == fluidBoundaries[4*j+0] && y == fluidBoundaries[4*j+1])
+	counter++;
+    } 
+    if (counter != 1) return false;
+  }
+
+  return true;
+}
+
+/*******************************************************************************
  * "main": main function
  *******************************************************************************
  */
@@ -223,18 +270,22 @@ int main() {
   double		 wallSpacing;	/* the rounded spacing between wall points	  */
   double		*wallSegments;	/* an array of wall segments                      */
   double		 tmp;	        /* a temporary real		                  */
-  double		 tmp1;	        /* a temporary real */
-  double		 tmp2;	        /* a temporary real */
-  double		 tmpArray[4];      /* a temporary array		                  */
+  double		 tmp1;	        /* a temporary real                               */
+  double		 tmp2;	        /* a temporary real                               */
+  double		 tmpArray[4];   /* a temporary array		                  */
   double		 dx;	        /* change in x			                  */
   double		 dx1;	        /* change in x			                  */
   double		 dx2;	        /* change in x			                  */
   double		 dy;	        /* change in y			                  */
   double		 dy1;	        /* change in x			                  */
   double		 dy2;	        /* change in x			                  */
+  double                 x0;            /* the initial x                                  */
+  double                 y0;            /* the initial y                                  */
   int			 nSegs;	        /* number of local wall intervals between points  */
   int			 nWallSegments;	/* the number of glocal wall segmnets             */
   int			 nCorners;	/* the number of global corners                   */
+  int                    nFluidBoundaries; /* the number of fluid boundaries              */
+  double                *fluidBoundaries;  /* an array of the boundaries enclosing the fluid */
   MpsCornersHd		 cornersHd;	/* corners sturcture				  */
   MpsWallPointsHd	 wallPointsHd;	/* wallPoints structure                           */
   MpsGhostPointsHd       ghostPointsHd;	/* ghostPoints structure                          */
@@ -244,20 +295,22 @@ int main() {
   fin  = fopen("mps.in", "r");
   fout = fopen("mps.out", "w");
 
-  // input
+  /*=======================================================================================
+   * Input and create wall points and ghost points
+   *=======================================================================================
+   */
+
+  // input radius, wallSpacing, wallSegments
   fscanf(fin, "%lf", &r);
   fscanf(fin, "%lf", &wallSpacing);
   fscanf(fin, "%d",  &nWallSegments);
   
   // initialize wall and ghost points
   wallSegments	 = memNew(double, sizeof(double) * 4);	// initially, four points; resize later
-
   cornersHd	 = mpsNewCorners();
-
   wallPointsHd   = mpsNewWallPoints();
-  
   ghostPointsHd = mpsNewGhostPoints();
-  
+
   for (int i = 0; i < nWallSegments; i++) {
     fscanf(fin, "%le %le %le %le", 
 	   &wallSegments[4*i+0], &wallSegments[4*i+1], 
@@ -265,6 +318,8 @@ int main() {
   }
  
   outCrd("wall_segments.dat", wallSegments, nWallSegments*2);
+
+
 
   // create the corners from wall segments list
   for (int i = 0; i < nWallSegments; i++) {
@@ -299,7 +354,7 @@ int main() {
 			      &(wallPointsHd->wallPointCrds),
 			      &(wallPointsHd->nWallPoints),
 			      &(wallPointsHd->maxWallPoints),
-			      wallSpacing, 0, 0);
+			      wallSpacing, false, false);
 
   // fill ghostPointsHd with the ghost points
   tmp = ghostPointsHd->nGhostPoints-1; // because it is changing in the for loop
@@ -332,7 +387,7 @@ int main() {
 				  &(ghostPointsHd->ghostPointCrds),
 				  &(ghostPointsHd->nGhostPoints),
 				  &(ghostPointsHd->maxGhostPoints),
-				  wallSpacing, 1, 1);
+				  wallSpacing, true, true);
     }
   }
 
@@ -340,6 +395,25 @@ int main() {
  
   // remove later
   outCrd("wall_points.dat", wallPointsHd->wallPointCrds, wallPointsHd->nWallPoints);
+
+  /*=======================================================================================
+   * Input and create fluid points
+   *=======================================================================================
+   */
+
+  // input fluid boundaries
+  fscanf(fin, "%d", &nFluidBoundaries);
+
+  fluidBoundaries = memNew(double, nFluidBoundaries*4);
+
+  for (int i = 0; i < nFluidBoundaries; i++) {
+    fscanf(fin, "%le %le %le %le", 
+	   &fluidBoundaries[4*i+0], &fluidBoundaries[4*i+1], 
+	   &fluidBoundaries[4*i+2], &fluidBoundaries[4*i+3]); 
+  }
+
+  // check if the boundary is closed
+  printf("%d", checkClosure(fluidBoundaries, nFluidBoundaries));
 
   return 0;
 }
