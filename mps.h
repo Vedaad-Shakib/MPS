@@ -35,14 +35,21 @@ typedef struct _MpsWallPoints {
 } MpsWallPoints;
 
 typedef struct _MpsGhostPoints {
-  int		 maxGhostPoints;/* capacity of the wallPointCrds array */
-  int		 nGhostPoints;	/* number of wall points 	       */
-  double	*ghostPointCrds;/* the coordinates of the wall points  */
+  int		 maxGhostPoints;/* capacity of the ghostPointCrds array */
+  int		 nGhostPoints;	/* number of ghost points               */
+  double	*ghostPointCrds;/* the coordinates of the ghost points  */
 } MpsGhostPoints;
+
+typedef struct _MpsFluidPoints {
+  int		 maxFluidPoints;/* capacity of the fluidPointCrds array */
+  int		 nFluidPoints;	/* number of fluid points 	        */ 
+  double	*fluidPointCrds;/* the coordinates of the fluid points  */
+} MpsFluidPoints;
 
 typedef MpsCorners* MpsCornersHd;
 typedef MpsWallPoints* MpsWallPointsHd;
 typedef MpsGhostPoints* MpsGhostPointsHd;
+typedef MpsFluidPoints* MpsFluidPointsHd;
 
 /*******************************************************************************
  * Corner function definitions
@@ -69,6 +76,16 @@ void		mpsFreeWallPoints(MpsWallPointsHd wallPointsHd);
  */
 
 MpsGhostPointsHd mpsNewGhostPoints();
-int		mpsGetGhostPointId(MpsGhostPointsHd ghostPointsHd, double x, double y);
-void		mpsFreeGhostPoints(MpsGhostPointsHd ghostPointsHd);
-#define	        mpsGetNGhostPoints(C)	((C)->nGhostPoints)
+int		 mpsGetGhostPointId(MpsGhostPointsHd ghostPointsHd, double x, double y);
+void	  	 mpsFreeGhostPoints(MpsGhostPointsHd ghostPointsHd);
+#define	         mpsGetNGhostPoints(C)	((C)->nGhostPoints)
+
+/*******************************************************************************
+ * Fluid point function definitions
+ *******************************************************************************
+ */
+
+MpsFluidPointsHd mpsNewFluidPoints();
+int		 mpsGetFluidPointId(MpsFluidPointsHd fluidPointsHd, double x, double y);
+void		 mpsFreeFluidPoints(MpsFluidPointsHd fluidPointsHd);
+#define	         mpsGetNFluidPoints(C)	((C)->nFluidPoints)

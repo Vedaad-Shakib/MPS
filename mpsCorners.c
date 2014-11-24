@@ -39,7 +39,7 @@ void mpsFreeCorners(MpsCornersHd cornersHd) {
 } 
 
 /*******************************************************************************
- * "mpsGetCornerId": get the ID a corner point, create one if not found
+ * "mpsGetCornerId": gets the ID a corner point and creates a new one if not found
  *******************************************************************************
  */
 int mpsGetCornerId(MpsCornersHd	cornersHd, double x, double y) {
@@ -60,9 +60,9 @@ int mpsGetCornerId(MpsCornersHd	cornersHd, double x, double y) {
     }
 
     // if not found, create a new corner point
-    memResize( double,			cornersHd->cornerCrds,	
-	       cornersHd->nCorners,	cornersHd->nCorners+1,	
-	       cornersHd->maxCorners,	2		      );
+    memResize(double,			cornersHd->cornerCrds,	
+	      cornersHd->nCorners,	cornersHd->nCorners+1,	
+	      cornersHd->maxCorners,	2		      );
 
     cornersHd->cornerCrds[2*cornersHd->nCorners+0] = x;
     cornersHd->cornerCrds[2*cornersHd->nCorners+1] = y;

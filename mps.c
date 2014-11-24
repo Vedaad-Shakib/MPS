@@ -413,7 +413,10 @@ int main() {
   }
 
   // check if the boundary is closed
-  printf("%d", checkClosure(fluidBoundaries, nFluidBoundaries));
+  if (!checkClosure(fluidBoundaries, nFluidBoundaries)) {
+    printf("The given fluid boundaries are not closed.");
+    exit(0);
+  } 
 
   return 0;
 }
