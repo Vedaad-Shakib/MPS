@@ -1,6 +1,6 @@
 all:: mps run
 
-CCFLAGS	= -std=c99
+CCFLAGS	= -std=c99 -I ./include/
 
 mpsCorners.o: mpsCorners.c mps.h
 	gcc $(CCFLAGS) -c mpsCorners.c

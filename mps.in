@@ -1,5 +1,24 @@
 2.0
 .7
-2
-0 0 5 3
-8 3 9 9
+3
+5 5 5 0
+5 0 0 0
+0 0 0 5
+4
+0 0 5 0
+5 0 5 5
+5 5 0 5
+0 5 0 0
+
+
+Format:
+1: radius of influence
+2: spacing between points
+3: number of wall segments (nWallSegments)
+4-4+nWallSegments-1: list of wall segment boundaries
+4+nWallSegments-1: number of fluid boundaries
+4+nWallSegments+nFluidSegments-2: list of fluid segment boundaries
+
+
+Note: ghost points are calculated on the left side of the wall segment vector and
+      fluid points are calculated on the left side of the fluid segment vector

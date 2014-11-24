@@ -5,6 +5,7 @@
 #include <strings.h>
 
 #include "mps.h"
+#include "uthash.h"
 
 /*******************************************************************************
  * "outCrd": output the coordinates into a file
