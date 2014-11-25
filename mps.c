@@ -12,6 +12,14 @@
 
 typedef int bool;
 
+struct point {
+  int id;                    /* key */
+  UT_hash_handle hh;         /* makes this structure hashable */
+};
+
+struct point *visitedPoints = NULL;    /* a global hash table for floodfill to check
+					  check if a point has already been visited */
+
 /*******************************************************************************
  * "outCrd": output the coordinates into a file
  *
@@ -262,6 +270,71 @@ bool checkClosure(double *fluidBoundaries, int nFluidBoundaries) {
 }
 
 /*******************************************************************************
+ * "integerize": integerizes a double to store in hash table; this is necessary
+ * because floating point arithmetic is not exactly accurate
+ *
+ * Parameters:
+ *            init: the initial point (all points are integerized with respect to it)
+ *            num: a double to be integerized
+ *******************************************************************************
+ */
+int pair(double initX, double initY, double x, double y, double wallSpacing) {
+  // first, integerize the point with respect to the initial point
+  double tmpX = (x-initX)/wallSpacing; /* temporary variable */
+  double tmpY = (y-initY)/wallSpacing; /* temporary variable */
+  int intX = (int) (tmpX < 0 ? (tmpX - 0.5) : (tmpX + 0.5)); /* integerized x */
+  int intY = (int) (tmpY < 0 ? (tmpY - 0.5) : (tmpY + 0.5)); /* integerized y */
+
+  // use an elegant pairing function to combine x and y into one unique integer
+  if (intX >= intY) return intX*intX + intX + intY;
+  else return intY*intY + intX;
+}
+
+/*******************************************************************************
+ * "addPoint": adds a point to the hash table visitedPoints
+ *
+ * Parameters:
+ *            id: the unique identifer of the point pair
+ *******************************************************************************
+ */
+void addPoint(int id) {
+  struct point *s;
+
+  s = malloc(sizeof(struct point));
+  s->id = id;
+  HASH_ADD_INT(visitedPoints, id, s);
+}
+
+/*******************************************************************************
+ * "isVisited": checks whether a point is already visited
+ *
+ * Parameters:
+ *            id: the id of the point
+ *******************************************************************************
+ */
+bool isVisited(int id) {
+  struct point *s;
+  HASH_FIND_INT(visitedPoints, &id, s);  /* id already in the hash? */
+  if (s == NULL) return false;
+  else return true;
+}
+
+/*******************************************************************************
+ * "floodfill": iteratively fills a boundary with points
+ *
+ * Parameters:
+ *            fluidPointsHd: an MpsFluidPointsHd struct which will contain the created points
+ *            fluidBoundaries: a pointer to an array of boundaries containing the fluid
+ *            nFluidBoundaries: the number of fluid boundaries
+ *******************************************************************************
+ */
+void floodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int nFluidBoundaries,
+	       double initX, double initY, double wallSpacing) {
+
+
+}
+
+/*******************************************************************************
  * "main": main function
  *******************************************************************************
  */
@@ -289,6 +362,7 @@ int main() {
   MpsCornersHd		 cornersHd;	/* corners sturcture				  */
   MpsWallPointsHd	 wallPointsHd;	/* wallPoints structure                           */
   MpsGhostPointsHd       ghostPointsHd;	/* ghostPoints structure                          */
+  MpsFluidPointsHd       fluidPointsHd; /* fluidPoints structure                          */
   FILE			*fin;           /* input file                                     */
   FILE			*fout;          /* output file                                    */
 
@@ -306,10 +380,10 @@ int main() {
   fscanf(fin, "%d",  &nWallSegments);
   
   // initialize wall and ghost points
-  wallSegments	 = memNew(double, sizeof(double) * 4);	// initially, four points; resize later
+  wallSegments	 = memNew(double, nWallSegments * 4); 
   cornersHd	 = mpsNewCorners();
   wallPointsHd   = mpsNewWallPoints();
-  ghostPointsHd = mpsNewGhostPoints();
+  ghostPointsHd  = mpsNewGhostPoints();
 
   for (int i = 0; i < nWallSegments; i++) {
     fscanf(fin, "%le %le %le %le", 
@@ -404,7 +478,9 @@ int main() {
   // input fluid boundaries
   fscanf(fin, "%d", &nFluidBoundaries);
 
+  // initialize fluidBoundaries and fluidPoints
   fluidBoundaries = memNew(double, nFluidBoundaries*4);
+  fluidPointsHd = mpsNewFluidPoints();
 
   for (int i = 0; i < nFluidBoundaries; i++) {
     fscanf(fin, "%le %le %le %le", 
@@ -417,6 +493,14 @@ int main() {
     printf("The given fluid boundaries are not closed.");
     exit(0);
   } 
+
+  // add starting point for floodfill
+  tmp = dist(fluidBoundaries[0], fluidBoundaries[1],
+	     fluidBoundaries[2], fluidBoundaries[3]);
+  dx = wallSpacing * (fluidBoundaries[2] - fluidBoundaries[0])/tmp;
+  dy = wallSpacing * (fluidBoundaries[3] - fluidBoundaries[1])/tmp;
+  x0 = (fluidBoundaries[2] - fluidBoundaries[0])/2 - dy;
+  y0 = (fluidBoundaries[3] - fluidBoundaries[1])/2 + dx;
 
   return 0;
 }
