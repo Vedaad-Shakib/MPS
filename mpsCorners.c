@@ -8,6 +8,7 @@
 **
 *******************************************************************************/
 
+#include "sys.h"
 #include "mps.h"
 
 /*******************************************************************************
@@ -25,7 +26,7 @@ MpsCornersHd mpsNewCorners() {
   cornersHd->cornerCrds	= memNew(double, 2*cornersHd->maxCorners);
   
   /* return structure */
-  return(cornersHd);
+  return (cornersHd);
 } 
 
 /*******************************************************************************

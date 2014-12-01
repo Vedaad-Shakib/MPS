@@ -9,17 +9,7 @@
 *******************************************************************************/
 
 /*******************************************************************************
- * Standard includes
- *******************************************************************************
- */
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <strings.h>
-#include "mem.h"
-
-/*******************************************************************************
- * Corner data
+ * Point struct data
  *******************************************************************************
  */
 typedef struct _MpsCorners {
@@ -89,3 +79,28 @@ MpsFluidPointsHd mpsNewFluidPoints();
 int		 mpsGetFluidPointId(MpsFluidPointsHd fluidPointsHd, double x, double y);
 void		 mpsFreeFluidPoints(MpsFluidPointsHd fluidPointsHd);
 #define	         mpsGetNFluidPoints(C)	((C)->nFluidPoints)
+
+/*******************************************************************************
+ * Mps function definitions
+ *******************************************************************************
+ */
+
+void outCrd(char *fileName, double *crd, int nPoints);
+int containsPoint(double *corners, int nCorners, double x, double y);
+int containsLine(double *wallSegments, int nWallSegments, double x1, double y1, double x2, double y2);
+double dist(int x1, int y1, int x2, int y2);
+void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegments,
+		     MpsGhostPointsHd ghostPointsHd, int nGhostPoints, double radius);
+void constructIntermediatePoints(double *cornerPoints, int nCornerPoints, double **outPoints,
+				 int *nOutPoints, int *maxOutPoints, double wallSpacing,
+				 bool containsStart, bool containsEnd);
+bool checkClosure(double *fluidBoundaries, int nFluidBoundaries);
+int integerize(double min, double val, double wallSpacing);
+bool mpsCrossesFluidBoundaries(double *fluidBoundaries, int nFluidBoundaries,
+			    double x1, double y1, double x2, double y2);
+bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
+		    double b1x, double b1y, double b2x, double b2y);
+void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int nFluidBoundaries,
+	       double initX, double initY, double wallSpacing);
+int main();
+

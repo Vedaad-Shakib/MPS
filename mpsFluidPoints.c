@@ -8,6 +8,7 @@
 **
 *******************************************************************************/
 
+#include "sys.h"
 #include "mps.h"
 
 /*******************************************************************************
@@ -43,9 +44,9 @@ void mpsFreeFluidPoints(MpsFluidPointsHd fluidPointsHd) {
  *******************************************************************************
  */
 int mpsGetFluidPointId(MpsFluidPointsHd	fluidPointsHd, double x, double y) {
-    int		 i;		/* index		    */
-    double	*fluidPointCrds;	/* localized fluidPoint points  */
-    int		 nFluidPoints;	/* number of fluidPoints        */
+    int		 i;		 /* index	        	 */
+    double	*fluidPointCrds; /* localized fluidPoint points  */
+    int		 nFluidPoints;	 /* number of fluidPoints        */
 
     // localize data
     nFluidPoints	= fluidPointsHd->nFluidPoints;

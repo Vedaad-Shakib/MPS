@@ -1,24 +1,20 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <strings.h>
+/*******************************************************************************     
+** Copyright 2014-2014 Vedaad Shakib Inc.
+*******************************************************************************/
 
+/*******************************************************************************
+** 
+** "mps.c": Moving Particle Semi-implicit
+**
+*******************************************************************************/
+
+/*******************************************************************************
+ * Standard includes
+*******************************************************************************/
+
+#include "sys.h"
 #include "mps.h"
-#include "uthash.h"
-
-#define true (1)
-#define false (0)
-
-typedef int bool;
-
-struct point {
-  int id;                    /* key */
-  UT_hash_handle hh;         /* makes this structure hashable */
-};
-
-struct point *visitedPoints = NULL;    /* a global hash table for floodfill to check
-					  check if a point has already been visited */
+#include "que.h"
 
 /*******************************************************************************
  * "outCrd": output the coordinates into a file
@@ -37,7 +33,6 @@ void outCrd(char *fileName,double *crd, int nPoints) {
 	fprintf(fout, "%.16e %.16e\n", crd[2*i+0], crd[2*i+1]);
     }
     fclose(fout) ;
-
 } 
 
 /*******************************************************************************
@@ -270,68 +265,193 @@ bool checkClosure(double *fluidBoundaries, int nFluidBoundaries) {
 }
 
 /*******************************************************************************
- * "integerize": integerizes a double to store in hash table; this is necessary
- * because floating point arithmetic is not exactly accurate
+ * "integerize": converts a double coordinate point into an integer value
  *
  * Parameters:
- *            init: the initial point (all points are integerized with respect to it)
- *            num: a double to be integerized
+ *            min: the minimum coordinate
+ *            val: the value to integerize
+ *            wallSpacing: the wall spacing
  *******************************************************************************
  */
-int pair(double initX, double initY, double x, double y, double wallSpacing) {
-  // first, integerize the point with respect to the initial point
-  double tmpX = (x-initX)/wallSpacing; /* temporary variable */
-  double tmpY = (y-initY)/wallSpacing; /* temporary variable */
-  int intX = (int) (tmpX < 0 ? (tmpX - 0.5) : (tmpX + 0.5)); /* integerized x */
-  int intY = (int) (tmpY < 0 ? (tmpY - 0.5) : (tmpY + 0.5)); /* integerized y */
-
-  // use an elegant pairing function to combine x and y into one unique integer
-  if (intX >= intY) return intX*intX + intX + intY;
-  else return intY*intY + intX;
+int integerize(double min, double val, double wallSpacing) {
+  return round((val-min)/wallSpacing);
 }
 
 /*******************************************************************************
- * "addPoint": adds a point to the hash table visitedPoints
+ * "mpsCrossesFluidBoundary": checks whether a line crosses  one fluid boundary
  *
  * Parameters:
- *            id: the unique identifer of the point pair
+ *            a1x: the x coordinate of the first point of the line 
+ *            a2x: the y coordinate of the first point of the line 
+ *            a1y: the x coordinate of the second point of the line 
+ *            a2y: the y coordinate of the second point of the line 
+ *            a1x: the x coordinate of the first point of the boundary
+ *            a2x: the y coordinate of the first point of the boundary
+ *            a1y: the x coordinate of the second point of the boundary
+ *            a2y: the y coordinate of the second point of the boundary
  *******************************************************************************
  */
-void addPoint(int id) {
-  struct point *s;
-
-  s = malloc(sizeof(struct point));
-  s->id = id;
-  HASH_ADD_INT(visitedPoints, id, s);
+bool mpsCrossesFluidBoundary(double *fluidBoundaries, int nFluidBoundaries,
+			  double x1, double y1, double x2, double y2) {
+  for (int i = 0; i < nFluidBoundaries; i++) {
+    if (mpsLinesIntersect(x1, y1, x2, y2,
+		       fluidBoundaries[4*i+0], fluidBoundaries[4*i+1],
+		       fluidBoundaries[4*i+2], fluidBoundaries[4*i+3])) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /*******************************************************************************
- * "isVisited": checks whether a point is already visited
+ * "mpsLinesIntersect": checks whether a line crosses another line
  *
  * Parameters:
- *            id: the id of the point
+ *            a1x: the x coordinate of the first point of the line 
+ *            a1y: the x coordinate of the second point of the line 
+ *            a2x: the y coordinate of the first point of the line 
+ *            a2y: the y coordinate of the second point of the line 
+ *            a1x: the x coordinate of the first point of the second line
+ *            a1y: the x coordinate of the second point of the second line
+ *            a2x: the y coordinate of the first point of the second line
+ *            a2y: the y coordinate of the second point of the second line
  *******************************************************************************
  */
-bool isVisited(int id) {
-  struct point *s;
-  HASH_FIND_INT(visitedPoints, &id, s);  /* id already in the hash? */
-  if (s == NULL) return false;
-  else return true;
+bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
+		    double b1x, double b1y, double b2x, double b2y) {
+  double dax; /* the ax delta */
+  double dbx; /* the bx delta */
+  double day; /* the ay delta */
+  double dby; /* the by delta */
+  double dbax; /* b1x-a1x */
+  double dbay; /* b1y-a1y */
+  double det; /* the determinant */
+  double alpha; /* distance coefficient */
+  double beta; /* distance coefficient */
+  double tol; /* check tolerance */
+
+  tol = 1.e-12 ;
+
+  dax = a2x-a1x;
+  day = a2y-a1y;
+  dbx = b1x-b2x;
+  dby = b1y-b2y;
+  dbax = b1x-a1x;
+  dbay = b1y-a1y;
+  det = dax*dby-dbx*day;
+
+  if ( fabs(det) <= tol * (fabs(dax)+fabs(day))*(fabs(dbx)+fabs(dby)) ) {
+      return( false ) ;
+  }
+
+  alpha = (+dby*dbax-dbx*dbay)/det;
+  beta  = (-day*dbax+dax*dbay)/det;
+  return (alpha > -tol && alpha < 1+tol && beta > -tol && beta < 1+tol);
 }
 
 /*******************************************************************************
- * "floodfill": iteratively fills a boundary with points
+ * "mpsFloodfill": iteratively fills a boundary with points
  *
  * Parameters:
  *            fluidPointsHd: an MpsFluidPointsHd struct which will contain the created points
  *            fluidBoundaries: a pointer to an array of boundaries containing the fluid
  *            nFluidBoundaries: the number of fluid boundaries
+ *            initX: the x value from where floodfill starts
+ *            initY: the y value from where floodfill starts
+ *            wallSpacing: the distance between the points
  *******************************************************************************
  */
-void floodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int nFluidBoundaries,
+void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int nFluidBoundaries,
 	       double initX, double initY, double wallSpacing) {
+  double	 x;		/* the x coordinate */
+  double	 y;		/* the y coordinate */
+  int		 xInt;          /* an integerized x */
+  int		 yInt;          /* an integerized y */
+  double	 xMin;		/* the minimum x */
+  double	 xMax;		/* the maximum x */
+  double	 yMin;		/* the minimum y */
+  double	 yMax;		/* the maximum y */
+  bool          *visited;       /* a 2D array of visited points */
+  int            xDim;          /* the number of x dimensions in the visited array */
+  int            yDim;          /* the number of y dimensions in the visited array */
+  QueHd        	 queHd;             /* queue to store points needed to be visited */
 
+  // get the minimum and maximum x and y coordinates
+  xMin = fluidBoundaries[0];
+  xMax = fluidBoundaries[0];
+  yMin = fluidBoundaries[1];
+  yMax = fluidBoundaries[1];
 
+  for (int i = 0; i < nFluidBoundaries; i++) {
+    if (fluidBoundaries[4*i+0] < xMin) xMin = fluidBoundaries[4*i+0];
+    if (fluidBoundaries[4*i+0] > xMax) xMax = fluidBoundaries[4*i+0];
+    if (fluidBoundaries[4*i+1] < yMin) yMin = fluidBoundaries[4*i+1];
+    if (fluidBoundaries[4*i+1] > yMax) yMax = fluidBoundaries[4*i+1];
+
+    if (fluidBoundaries[4*i+2] < xMin) xMin = fluidBoundaries[4*i+2];
+    if (fluidBoundaries[4*i+2] > xMax) xMax = fluidBoundaries[4*i+2];
+    if (fluidBoundaries[4*i+3] < yMin) yMin = fluidBoundaries[4*i+3];
+    if (fluidBoundaries[4*i+3] > yMax) yMax = fluidBoundaries[4*i+3];
+  }
+
+  // make a 2D array to store whether points are visited or unvisited
+  xDim	= round((xMax-xMin)/wallSpacing)+1;
+  yDim	= round((yMax-yMin)/wallSpacing)+1;
+
+  printf("values = %lf %lf %lf %lf\n", xMin, xMax, yMin, yMax);
+  printf("values = %lu %d %d %d\n", sizeof(bool), xDim, yDim, xDim*yDim);
+
+  visited = memNew(bool, xDim * yDim);
+
+  // initialize queue
+  // using queue and while loop because recursion with a depth of nFluidPoints is way too much overhead
+  queHd = queNew();
+  quePush(queHd, initX);
+  quePush(queHd, initY);
+  xInt = integerize(xMin, initX, wallSpacing);
+  yInt = integerize(yMin, initX, wallSpacing);
+  visited[xInt+yInt*xDim] = true;
+
+  while (!queIsEmpty(queHd)) {
+    x = quePop(queHd);
+    y = quePop(queHd);
+    xInt = integerize(xMin, x, wallSpacing);
+    yInt = integerize(yMin, y, wallSpacing);
+
+    // add the point
+    memResize(double, fluidPointsHd->fluidPointCrds, fluidPointsHd->nFluidPoints, fluidPointsHd->nFluidPoints+1, fluidPointsHd->maxFluidPoints, 2);
+    fluidPointsHd->fluidPointCrds[2*fluidPointsHd->nFluidPoints+0] = x;
+    fluidPointsHd->fluidPointCrds[2*fluidPointsHd->nFluidPoints+1] = y;
+    fluidPointsHd->nFluidPoints++;
+
+    // check and add the four adjacent points to the queue
+    if ( !visited[(xInt+1)+yInt*xDim] && 
+	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x+wallSpacing, y)) {
+      quePush(queHd, x+wallSpacing);
+      quePush(queHd, y);
+      visited[(xInt+1)+yInt*xDim] = true;
+    }
+    if ( !visited[xInt+(yInt+1)*xDim] && 
+	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x, y+wallSpacing)) {
+      quePush(queHd, x);
+      quePush(queHd, y+wallSpacing);
+      visited[xInt+(yInt+1)*xDim] = true;
+    }
+    if ( !visited[xInt-1+(yInt*xDim)] && 
+	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x-wallSpacing, y)) {
+      quePush(queHd, x-wallSpacing);
+      quePush(queHd, y);
+      visited[(xInt-1)+yInt*xDim] = true;
+    }
+    if ( !visited[xInt+(yInt-1)*xDim] && 
+	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x, y-wallSpacing)) {
+      quePush(queHd, x);
+      quePush(queHd, y-wallSpacing);
+      visited[xInt+(yInt-1)*xDim] = true;
+    }
+  }
+  
+  queFree(queHd);
 }
 
 /*******************************************************************************
@@ -501,6 +621,11 @@ int main() {
   dy = wallSpacing * (fluidBoundaries[3] - fluidBoundaries[1])/tmp;
   x0 = (fluidBoundaries[2] - fluidBoundaries[0])/2 - dy;
   y0 = (fluidBoundaries[3] - fluidBoundaries[1])/2 + dx;
+
+  mpsFloodfill(fluidPointsHd, fluidBoundaries, nFluidBoundaries,
+	    x0, y0, wallSpacing);
+
+  outCrd("fluid_points.dat", fluidPointsHd->fluidPointCrds, fluidPointsHd->nFluidPoints);
 
   return 0;
 }
