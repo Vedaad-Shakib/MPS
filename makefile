@@ -19,7 +19,7 @@ mpsGhostPoints.o: mpsGhostPoints.c mps.h $(STDINC)
 mpsFluidPoints.o: mpsFluidPoints.c mps.h $(STDINC)
 	gcc $(CCFLAGS) -c mpsFluidPoints.c
 
-mps.o: mps.c mps.h
+mps.o: mps.c mps.h $(STDINC)
 	gcc $(CCFLAGS) -c mps.c
 
 mps: mps.o mpsCorners.o mpsWallPoints.o mpsGhostPoints.o mpsFluidPoints.o que.o

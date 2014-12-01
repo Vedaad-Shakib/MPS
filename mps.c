@@ -1,4 +1,4 @@
-/*******************************************************************************     
+/*******************************************************************************          
 ** Copyright 2014-2014 Vedaad Shakib Inc.
 *******************************************************************************/
 
@@ -17,7 +17,7 @@
 #include "que.h"
 
 /*******************************************************************************
- * "outCrd": output the coordinates into a file
+ * "mpsOutCrd": output the coordinates into a file
  *
  * Parameters:
  *            fileName: the fileName of the file to be written
@@ -25,36 +25,18 @@
  *            nPoints: the length of crd
  *******************************************************************************
  */
-void outCrd(char *fileName,double *crd, int nPoints) {
+void mpsOutCrd(char *fileName,double *crd, int nPoints) {
     FILE *fout;
 
-    fout = fopen(fileName, "w") ;
+    fout = fopen(fileName, "w");
     for (int i = 0; i < nPoints; i++) {
 	fprintf(fout, "%.16e %.16e\n", crd[2*i+0], crd[2*i+1]);
     }
-    fclose(fout) ;
+    fclose(fout);
 } 
 
 /*******************************************************************************
- * "containsPoint": checks if array corners already contains point x,y
- *
- * Parameters:
- *            corners: a pointer to a list of corners through which the function searches
- *            nCorners: the length of corners
- *            x: the x coordinate of the point to search for
- *            y: the y coordinate of the point to search for
- *******************************************************************************
- */
-int containsPoint(double *corners, int nCorners, double x, double y) {
-  for (int i = 0; i < nCorners; i+=2) {
-    if (corners[2*i+0] == x && corners[2*i+1] == y) 
-      return 1;
-  }
-  return 0;
-}
-
-/*******************************************************************************
- * "containsLine": checks if array corners already contains line x1 ,y1, x2, y2
+ * "mpsContainsLine": checks if array corners already contains line x1 ,y1, x2, y2
  *
  * Parameters:
  *            corners: a pointer to a list of corners through which the function searches
@@ -65,7 +47,7 @@ int containsPoint(double *corners, int nCorners, double x, double y) {
  *            y2: the y coordinate of the second point
  *******************************************************************************
  */
-int containsLine(double *wallSegments, int nWallSegments, double x1, double y1, double x2, double y2) {
+int mpsContainsLine(double *wallSegments, int nWallSegments, double x1, double y1, double x2, double y2) {
   for (int i = 0; i < nWallSegments; i++) {
     if (wallSegments[4*i+0] == x1 && wallSegments[4*i+1] == y1 && wallSegments[4*i+2] == x2 && wallSegments[4*i+3] == y2) 
       return 1;
@@ -74,7 +56,7 @@ int containsLine(double *wallSegments, int nWallSegments, double x1, double y1, 
 }
 
 /*******************************************************************************
- * "dist": returns the distance between two points
+ * "mpsDist": returns the mpsDistance between two points
  *
  * Parameters:
  *            x1: the x coordinate of the first point
@@ -83,7 +65,7 @@ int containsLine(double *wallSegments, int nWallSegments, double x1, double y1, 
  *            y2: the y coordinate of the second point
  *******************************************************************************
  */
-double dist(int x1, int y1, int x2, int y2) {
+double mpsDist(int x1, int y1, int x2, int y2) {
   return sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
 }
 
@@ -173,7 +155,7 @@ void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegm
 }
 
 /*******************************************************************************
- * "constructIntermediatePoints": adds the intermediate points between corner points,
+ * "mpsConstructIntermediatePoints": adds the intermediate points between corner points,
  *                                separated by wallSpacing units, to the outPoints array
  *
  * Parameters:
@@ -186,23 +168,23 @@ void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegm
  *            containsEnd: if the second corner is included in the list of wall points - 0 or 1
  *******************************************************************************
  */
-void constructIntermediatePoints(double *cornerPoints, int nCornerPoints, double **outPoints,
-				 int *nOutPoints, int *maxOutPoints, double wallSpacing,
-				 bool containsStart, bool containsEnd) {
+void mpsConstructIntermediatePoints(double *cornerPoints, int nCornerPoints, double **outPoints,
+				    int *nOutPoints, int *maxOutPoints, double wallSpacing,
+				    bool containsStart, bool containsEnd) {
   double	tmp;		/* a temporary variable */
   int		nSegs;		/* the number of wall segments */
   double	dx;		/* the change in x */
   double	dy;		/* the change in y */
   int		maxPoints;      /* localized data */
-  int           nPoints ;       /* number of points */
-  double*	points ;	/* array of the points	*/
+  int           nPoints;        /* number of points */
+  double*	points;  	/* array of the points	*/
 
   maxPoints = *maxOutPoints;
   nPoints = *nOutPoints;
   points = *outPoints;
   
   for (int i = 0; i < nCornerPoints; i++) {
-    tmp   = dist(cornerPoints[4*i+0], cornerPoints[4*i+1], 
+    tmp   = mpsDist(cornerPoints[4*i+0], cornerPoints[4*i+1], 
 		 cornerPoints[4*i+2], cornerPoints[4*i+3]);
     nSegs = ceil(tmp / wallSpacing);
     dx	  = (cornerPoints[4*i+2] - cornerPoints[4*i+0]) / nSegs;
@@ -223,7 +205,7 @@ void constructIntermediatePoints(double *cornerPoints, int nCornerPoints, double
 }
 
 /*******************************************************************************
- * "checkClosure": checks whether a list of boundaries are closed by ensuring
+ * "mpsCheckClosure": checks whether a list of boundaries are closed by ensuring
  *                 that every start connects to one and only one end and that
  *                 every end connects to one and only one start
  *
@@ -232,7 +214,7 @@ void constructIntermediatePoints(double *cornerPoints, int nCornerPoints, double
  *            nFluidBoundaries: the number of boundaries
  *******************************************************************************
  */
-bool checkClosure(double *fluidBoundaries, int nFluidBoundaries) {
+bool mpsCheckClosure(double *fluidBoundaries, int nFluidBoundaries) {
   int	x;	 /* x coordinate */
   int	y;	 /* y coordinate */
   int	counter; /* a counter    */
@@ -265,15 +247,15 @@ bool checkClosure(double *fluidBoundaries, int nFluidBoundaries) {
 }
 
 /*******************************************************************************
- * "integerize": converts a double coordinate point into an integer value
+ * "mpsIntegerize": converts a double coordinate point into an integer value
  *
  * Parameters:
  *            min: the minimum coordinate
- *            val: the value to integerize
+ *            val: the value to mpsIntegerize
  *            wallSpacing: the wall spacing
  *******************************************************************************
  */
-int integerize(double min, double val, double wallSpacing) {
+int mpsIntegerize(double min, double val, double wallSpacing) {
   return round((val-min)/wallSpacing);
 }
 
@@ -318,7 +300,7 @@ bool mpsCrossesFluidBoundary(double *fluidBoundaries, int nFluidBoundaries,
  *******************************************************************************
  */
 bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
-		    double b1x, double b1y, double b2x, double b2y) {
+		       double b1x, double b1y, double b2x, double b2y) {
   double dax; /* the ax delta */
   double dbx; /* the bx delta */
   double day; /* the ay delta */
@@ -326,11 +308,11 @@ bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
   double dbax; /* b1x-a1x */
   double dbay; /* b1y-a1y */
   double det; /* the determinant */
-  double alpha; /* distance coefficient */
-  double beta; /* distance coefficient */
+  double alpha; /* mpsDistance coefficient */
+  double beta; /* mpsDistance coefficient */
   double tol; /* check tolerance */
 
-  tol = 1.e-12 ;
+  tol = 1.e-12;
 
   dax = a2x-a1x;
   day = a2y-a1y;
@@ -340,8 +322,9 @@ bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
   dbay = b1y-a1y;
   det = dax*dby-dbx*day;
 
-  if ( fabs(det) <= tol * (fabs(dax)+fabs(day))*(fabs(dbx)+fabs(dby)) ) {
-      return( false ) ;
+  // if determinant is 0, they're parallel (and the rest will return error)
+  if (fabs(det) <= tol * (fabs(dax)+fabs(day))*(fabs(dbx)+fabs(dby))) {
+      return(false);
   }
 
   alpha = (+dby*dbax-dbx*dbay)/det;
@@ -358,15 +341,15 @@ bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
  *            nFluidBoundaries: the number of fluid boundaries
  *            initX: the x value from where floodfill starts
  *            initY: the y value from where floodfill starts
- *            wallSpacing: the distance between the points
+ *            wallSpacing: the mpsDistance between the points
  *******************************************************************************
  */
 void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int nFluidBoundaries,
-	       double initX, double initY, double wallSpacing) {
+		  double initX, double initY, double wallSpacing) {
   double	 x;		/* the x coordinate */
   double	 y;		/* the y coordinate */
-  int		 xInt;          /* an integerized x */
-  int		 yInt;          /* an integerized y */
+  int		 xInt;          /* an mpsIntegerized x */
+  int		 yInt;          /* an mpsIntegerized y */
   double	 xMin;		/* the minimum x */
   double	 xMax;		/* the maximum x */
   double	 yMin;		/* the minimum y */
@@ -374,7 +357,7 @@ void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int n
   bool          *visited;       /* a 2D array of visited points */
   int            xDim;          /* the number of x dimensions in the visited array */
   int            yDim;          /* the number of y dimensions in the visited array */
-  QueHd        	 queHd;             /* queue to store points needed to be visited */
+  QueHd        	 queHd;         /* queue to store points needed to be visited */
 
   // get the minimum and maximum x and y coordinates
   xMin = fluidBoundaries[0];
@@ -395,11 +378,8 @@ void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int n
   }
 
   // make a 2D array to store whether points are visited or unvisited
-  xDim	= round((xMax-xMin)/wallSpacing)+1;
-  yDim	= round((yMax-yMin)/wallSpacing)+1;
-
-  printf("values = %lf %lf %lf %lf\n", xMin, xMax, yMin, yMax);
-  printf("values = %lu %d %d %d\n", sizeof(bool), xDim, yDim, xDim*yDim);
+  xDim = round((xMax-xMin)/wallSpacing)+1;
+  yDim = round((yMax-yMin)/wallSpacing)+1;
 
   visited = memNew(bool, xDim * yDim);
 
@@ -408,15 +388,13 @@ void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int n
   queHd = queNew();
   quePush(queHd, initX);
   quePush(queHd, initY);
-  xInt = integerize(xMin, initX, wallSpacing);
-  yInt = integerize(yMin, initX, wallSpacing);
-  visited[xInt+yInt*xDim] = true;
 
   while (!queIsEmpty(queHd)) {
     x = quePop(queHd);
     y = quePop(queHd);
-    xInt = integerize(xMin, x, wallSpacing);
-    yInt = integerize(yMin, y, wallSpacing);
+    xInt = mpsIntegerize(xMin, x, wallSpacing);
+    yInt = mpsIntegerize(yMin, y, wallSpacing);
+    visited[xInt+yInt*xDim] = true;
 
     // add the point
     memResize(double, fluidPointsHd->fluidPointCrds, fluidPointsHd->nFluidPoints, fluidPointsHd->nFluidPoints+1, fluidPointsHd->maxFluidPoints, 2);
@@ -425,25 +403,25 @@ void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int n
     fluidPointsHd->nFluidPoints++;
 
     // check and add the four adjacent points to the queue
-    if ( !visited[(xInt+1)+yInt*xDim] && 
+    if (!visited[(xInt+1)+yInt*xDim] && 
 	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x+wallSpacing, y)) {
       quePush(queHd, x+wallSpacing);
       quePush(queHd, y);
       visited[(xInt+1)+yInt*xDim] = true;
     }
-    if ( !visited[xInt+(yInt+1)*xDim] && 
+    if (!visited[xInt+(yInt+1)*xDim] && 
 	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x, y+wallSpacing)) {
       quePush(queHd, x);
       quePush(queHd, y+wallSpacing);
       visited[xInt+(yInt+1)*xDim] = true;
     }
-    if ( !visited[xInt-1+(yInt*xDim)] && 
+    if (!visited[xInt-1+(yInt*xDim)] && 
 	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x-wallSpacing, y)) {
       quePush(queHd, x-wallSpacing);
       quePush(queHd, y);
       visited[(xInt-1)+yInt*xDim] = true;
     }
-    if ( !visited[xInt+(yInt-1)*xDim] && 
+    if (!visited[xInt+(yInt-1)*xDim] && 
 	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x, y-wallSpacing)) {
       quePush(queHd, x);
       quePush(queHd, y-wallSpacing);
@@ -511,7 +489,7 @@ int main() {
 	   &wallSegments[4*i+2], &wallSegments[4*i+3]); 
   }
  
-  outCrd("wall_segments.dat", wallSegments, nWallSegments*2);
+  mpsOutCrd("wall_segments.dat", wallSegments, nWallSegments*2);
 
 
 
@@ -522,7 +500,7 @@ int main() {
   }
 
   // remove later
-  outCrd("corners.dat", cornersHd->cornerCrds, cornersHd->nCorners);
+  mpsOutCrd("corners.dat", cornersHd->cornerCrds, cornersHd->nCorners);
 
   nCorners = mpsGetNCorners(cornersHd);
 
@@ -531,7 +509,7 @@ int main() {
       nCorners, r);
 
   // remove later
-  outCrd("ghost_corners.dat", ghostPointsHd->ghostPointCrds, nCorners);
+  mpsOutCrd("ghost_corners.dat", ghostPointsHd->ghostPointCrds, nCorners);
   //printf("%d", ghostPointsHd->nGhostPoints);
 
   // initialize the wall points with all corners
@@ -544,23 +522,23 @@ int main() {
   }
 
   // add the intermediate points between the wall corners
-  constructIntermediatePoints(wallSegments, nWallSegments,
-			      &(wallPointsHd->wallPointCrds),
-			      &(wallPointsHd->nWallPoints),
-			      &(wallPointsHd->maxWallPoints),
-			      wallSpacing, false, false);
+  mpsConstructIntermediatePoints(wallSegments, nWallSegments,
+				 &(wallPointsHd->wallPointCrds),
+				 &(wallPointsHd->nWallPoints),
+				 &(wallPointsHd->maxWallPoints),
+				 wallSpacing, false, false);
 
   // fill ghostPointsHd with the ghost points
   tmp = ghostPointsHd->nGhostPoints-1; // because it is changing in the for loop
 
   for (int i = 0; i < tmp; i++) {
     // check if the ghost segment is an actual ghost segment or just a segment with two points from different segments
-    if (!containsLine(wallSegments, nWallSegments, cornersHd->cornerCrds[2*i+0], cornersHd->cornerCrds[2*i+1], cornersHd->cornerCrds[2*(i+1)+0], cornersHd->cornerCrds[2*(i+1)+1]))
+    if (!mpsContainsLine(wallSegments, nWallSegments, cornersHd->cornerCrds[2*i+0], cornersHd->cornerCrds[2*i+1], cornersHd->cornerCrds[2*(i+1)+0], cornersHd->cornerCrds[2*(i+1)+1]))
 	  continue;
 
-    tmp1 = dist(cornersHd->cornerCrds[2*i+0], cornersHd->cornerCrds[2*i+1],
+    tmp1 = mpsDist(cornersHd->cornerCrds[2*i+0], cornersHd->cornerCrds[2*i+1],
 		ghostPointsHd->ghostPointCrds[2*i+0], ghostPointsHd->ghostPointCrds[2*i+1]);
-    tmp2 = dist(cornersHd->cornerCrds[2*(i+1)+0], cornersHd->cornerCrds[2*(i+1)+1],
+    tmp2 = mpsDist(cornersHd->cornerCrds[2*(i+1)+0], cornersHd->cornerCrds[2*(i+1)+1],
 		ghostPointsHd->ghostPointCrds[2*(i+1)+0], ghostPointsHd->ghostPointCrds[2*(i+1)+1]);
 
     nSegs = fmax(ceil(tmp1 / wallSpacing), ceil(tmp2 / wallSpacing));
@@ -577,18 +555,18 @@ int main() {
       tmpArray[2] = cornersHd->cornerCrds[2*(i+1)+0] + j*dx2; // extend by dx of cornerCrds
       tmpArray[3] = cornersHd->cornerCrds[2*(i+1)+1] + j*dy2;
 
-      constructIntermediatePoints(tmpArray, 4,
-				  &(ghostPointsHd->ghostPointCrds),
-				  &(ghostPointsHd->nGhostPoints),
-				  &(ghostPointsHd->maxGhostPoints),
-				  wallSpacing, true, true);
+      mpsConstructIntermediatePoints(tmpArray, 4,
+				     &(ghostPointsHd->ghostPointCrds),
+				     &(ghostPointsHd->nGhostPoints),
+				     &(ghostPointsHd->maxGhostPoints),
+				     wallSpacing, true, true);
     }
   }
 
-  outCrd("ghost_points.dat", ghostPointsHd->ghostPointCrds, ghostPointsHd->nGhostPoints);
+  mpsOutCrd("ghost_points.dat", ghostPointsHd->ghostPointCrds, ghostPointsHd->nGhostPoints);
  
   // remove later
-  outCrd("wall_points.dat", wallPointsHd->wallPointCrds, wallPointsHd->nWallPoints);
+  mpsOutCrd("wall_points.dat", wallPointsHd->wallPointCrds, wallPointsHd->nWallPoints);
 
   /*=======================================================================================
    * Input and create fluid points
@@ -609,23 +587,24 @@ int main() {
   }
 
   // check if the boundary is closed
-  if (!checkClosure(fluidBoundaries, nFluidBoundaries)) {
+  if (!mpsCheckClosure(fluidBoundaries, nFluidBoundaries)) {
     printf("The given fluid boundaries are not closed.");
     exit(0);
   } 
 
   // add starting point for floodfill
-  tmp = dist(fluidBoundaries[0], fluidBoundaries[1],
+  tmp = mpsDist(fluidBoundaries[0], fluidBoundaries[1],
 	     fluidBoundaries[2], fluidBoundaries[3]);
   dx = wallSpacing * (fluidBoundaries[2] - fluidBoundaries[0])/tmp;
   dy = wallSpacing * (fluidBoundaries[3] - fluidBoundaries[1])/tmp;
   x0 = (fluidBoundaries[2] - fluidBoundaries[0])/2 - dy;
   y0 = (fluidBoundaries[3] - fluidBoundaries[1])/2 + dx;
 
+  // fill the boundary through iterative floodfill
   mpsFloodfill(fluidPointsHd, fluidBoundaries, nFluidBoundaries,
-	    x0, y0, wallSpacing);
+	       x0, y0, wallSpacing);
 
-  outCrd("fluid_points.dat", fluidPointsHd->fluidPointCrds, fluidPointsHd->nFluidPoints);
+  mpsOutCrd("fluid_points.dat", fluidPointsHd->fluidPointCrds, fluidPointsHd->nFluidPoints);
 
   return 0;
 }

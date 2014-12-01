@@ -14,8 +14,6 @@
  */
 #define memPrintNew(T,N)	printf("Allocating %ld in %s line %d\n", \
 				    sizeof(T)*(N), __FILE__, __LINE__ )
-#define	MEM_ECHO	0
-
 #ifdef MEM_ECHO
 #define	memNew(T,N)	(memPrintNew(T,N), 				\
 			(T*) malloc(sizeof(T) * N))
