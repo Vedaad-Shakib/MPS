@@ -177,24 +177,25 @@ void mpsConstructIntermediatePoints(double *cornerPoints, int nCornerPoints, dou
   double	dy;		/* the change in y */
   int		maxPoints;      /* localized data */
   int           nPoints;        /* number of points */
-  double*	points;  	/* array of the points	*/
+  double       *points;  	/* array of the points	*/
 
   maxPoints = *maxOutPoints;
   nPoints = *nOutPoints;
   points = *outPoints;
   
-  for (int i = 0; i < nCornerPoints; i++) {
-    tmp   = mpsDist(cornerPoints[4*i+0], cornerPoints[4*i+1], 
-		 cornerPoints[4*i+2], cornerPoints[4*i+3]);
+  for (int i = 0; i < nCornerPoints-1; i++) {
+    tmp   = mpsDist(cornerPoints[2*i+0], cornerPoints[2*i+1], 
+		    cornerPoints[2*(i+1)+0], cornerPoints[2*(i+1)+1]);
     nSegs = ceil(tmp / wallSpacing);
-    dx	  = (cornerPoints[4*i+2] - cornerPoints[4*i+0]) / nSegs;
-    dy	  = (cornerPoints[4*i+3] - cornerPoints[4*i+1]) / nSegs;
+    dx	  = (cornerPoints[2*(i+1)+0] - cornerPoints[2*i+0]) / nSegs;
+    dy	  = (cornerPoints[2*(i+1)+1] - cornerPoints[2*i+1]) / nSegs;
 
+    //printf("nPoints: %d, nSegs: %d, maxPoints: %d\n", nPoints, nSegs, maxPoints);
     memResize(double, points, nPoints, nPoints + nSegs+1, maxPoints, 2);
 
     for (int j = 1-containsStart; j < nSegs+containsEnd; j++) {
-      points[2*nPoints+0] = cornerPoints[4*i+0] + j * dx;
-      points[2*nPoints+1] = cornerPoints[4*i+1] + j * dy;
+      points[2*nPoints+0] = cornerPoints[2*i+0] + j * dx;
+      points[2*nPoints+1] = cornerPoints[2*i+1] + j * dy;
       nPoints++;
     }
   }
@@ -554,7 +555,9 @@ int main() {
       tmpArray[2] = cornersHd->cornerCrds[2*(i+1)+0] + j*dx2; // extend by dx of cornerCrds
       tmpArray[3] = cornersHd->cornerCrds[2*(i+1)+1] + j*dy2;
 
-      mpsConstructIntermediatePoints(tmpArray, 4,
+      //fprintf(stderr, "maxPoints: %d, nPoints: %d\n", ghostPointsHd->maxGhostPoints, ghostPointsHd->nGhostPoints);
+      //fprintf(stderr, "tmpArray: %lf, %lf, %lf, %lf\n", tmpArray[0], tmpArray[1], tmpArray[2], tmpArray[3]);
+      mpsConstructIntermediatePoints(tmpArray, 2,
 				     &(ghostPointsHd->ghostPointCrds),
 				     &(ghostPointsHd->nGhostPoints),
 				     &(ghostPointsHd->maxGhostPoints),
