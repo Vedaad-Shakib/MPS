@@ -1,6 +1,6 @@
 all:: mps run
 
-CCFLAGS	= -std=c99 -I ./include/
+CCFLAGS	= -std=c99 -I ./include/ -g -static -O0
 
 STDINC	= sys.h mem.h
 
@@ -29,4 +29,4 @@ run:: mps
 	mps
 
 clean::
-	rm -rf mps *.o *.dat mps.out *.pyc
+	rm -rf mps *.o *.dat mps.out *.pyc mps.dSYM Log

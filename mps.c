@@ -130,7 +130,7 @@ void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegm
 	}
     }
 
-    // computer ghost corners
+    // compute ghost corners, combining the normal directions of two wall segments on one endpoint
     for (int i = 0; i < nGhostPoints; i++) {
 	nx1 = cornerNDirs[4*i+0];
 	ny1 = cornerNDirs[4*i+1];
@@ -206,8 +206,8 @@ void mpsConstructIntermediatePoints(double *cornerPoints, int nCornerPoints, dou
 
 /*******************************************************************************
  * "mpsCheckClosure": checks whether a list of boundaries are closed by ensuring
- *                 that every start connects to one and only one end and that
- *                 every end connects to one and only one start
+ *                    that every start connects to one and only one end and that
+ *                    every end connects to one and only one start
  *
  * Parameters:
  *            fluidBoundaries: a list of boundaries
@@ -215,9 +215,9 @@ void mpsConstructIntermediatePoints(double *cornerPoints, int nCornerPoints, dou
  *******************************************************************************
  */
 bool mpsCheckClosure(double *fluidBoundaries, int nFluidBoundaries) {
-  int	x;	 /* x coordinate */
-  int	y;	 /* y coordinate */
-  int	counter; /* a counter    */
+  double	x;		/* x coordinate             */
+  double 	y;		/* y coordinate             */
+  int		counter;	/* a counter                */
 
   // check that every start point connects with only one end point
   for (int i = 0; i < nFluidBoundaries; i++) {
@@ -256,7 +256,7 @@ bool mpsCheckClosure(double *fluidBoundaries, int nFluidBoundaries) {
  *******************************************************************************
  */
 int mpsIntegerize(double min, double val, double wallSpacing) {
-  return round((val-min)/wallSpacing);
+  return (int) round((val-min)/wallSpacing);
 }
 
 /*******************************************************************************
@@ -378,10 +378,10 @@ void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int n
   }
 
   // make a 2D array to store whether points are visited or unvisited
-  xDim = round((xMax-xMin)/wallSpacing)+1;
-  yDim = round((yMax-yMin)/wallSpacing)+1;
+  xDim = (int) round((xMax-xMin)/wallSpacing)+1;
+  yDim = (int) round((yMax-yMin)/wallSpacing)+1;
 
-  visited = memNew(bool, xDim * yDim);
+  visited = memNewZero(bool, xDim * yDim);
 
   // initialize queue
   // using queue and while loop because recursion with a depth of nFluidPoints is way too much overhead
@@ -403,26 +403,26 @@ void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int n
     fluidPointsHd->nFluidPoints++;
 
     // check and add the four adjacent points to the queue
-    if (!visited[(xInt+1)+yInt*xDim] && 
-	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x+wallSpacing, y)) {
+    if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x+wallSpacing, y) &&
+	!visited[(xInt+1)+yInt*xDim]) {
       quePush(queHd, x+wallSpacing);
       quePush(queHd, y);
       visited[(xInt+1)+yInt*xDim] = true;
     }
-    if (!visited[xInt+(yInt+1)*xDim] && 
-	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x, y+wallSpacing)) {
+    if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x, y+wallSpacing) &&
+	!visited[xInt+(yInt+1)*xDim]) {
       quePush(queHd, x);
       quePush(queHd, y+wallSpacing);
       visited[xInt+(yInt+1)*xDim] = true;
     }
-    if (!visited[xInt-1+(yInt*xDim)] && 
-	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x-wallSpacing, y)) {
+    if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x-wallSpacing, y) &&
+        !visited[(xInt-1)+(yInt*xDim)]) {
       quePush(queHd, x-wallSpacing);
       quePush(queHd, y);
-      visited[(xInt-1)+yInt*xDim] = true;
+      visited[(xInt-1)+(yInt*xDim)] = true;
     }
-    if (!visited[xInt+(yInt-1)*xDim] && 
-	!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x, y-wallSpacing)) {
+    if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x, y-wallSpacing) &&
+	!visited[xInt+(yInt-1)*xDim]) {
       quePush(queHd, x);
       quePush(queHd, y-wallSpacing);
       visited[xInt+(yInt-1)*xDim] = true;
@@ -510,7 +510,6 @@ int main() {
 
   // remove later
   mpsOutCrd("ghost_corners.dat", ghostPointsHd->ghostPointCrds, nCorners);
-  //printf("%d", ghostPointsHd->nGhostPoints);
 
   // initialize the wall points with all corners
   memResize(double, wallPointsHd->wallPointCrds, 0, cornersHd->nCorners+1, wallPointsHd->maxWallPoints, 2);
@@ -578,7 +577,7 @@ int main() {
 
   // initialize fluidBoundaries and fluidPoints
   fluidBoundaries = memNew(double, nFluidBoundaries*4);
-  fluidPointsHd = mpsNewFluidPoints();
+  fluidPointsHd	  = mpsNewFluidPoints();
 
   for (int i = 0; i < nFluidBoundaries; i++) {
     fscanf(fin, "%le %le %le %le", 
@@ -591,14 +590,13 @@ int main() {
     printf("The given fluid boundaries are not closed.");
     exit(0);
   } 
-
+  
   // add starting point for floodfill
-  tmp = mpsDist(fluidBoundaries[0], fluidBoundaries[1],
-	     fluidBoundaries[2], fluidBoundaries[3]);
-  dx = wallSpacing * (fluidBoundaries[2] - fluidBoundaries[0])/tmp;
-  dy = wallSpacing * (fluidBoundaries[3] - fluidBoundaries[1])/tmp;
-  x0 = (fluidBoundaries[2] - fluidBoundaries[0])/2 - dy;
-  y0 = (fluidBoundaries[3] - fluidBoundaries[1])/2 + dx;
+  dx  = (fluidBoundaries[2] - fluidBoundaries[0]);
+  dy  = (fluidBoundaries[3] - fluidBoundaries[1]);
+  tmp = sqrt(dx*dx + dy*dy);
+  x0  = fluidBoundaries[0] + dx/2 + wallSpacing*(-dy/tmp);
+  y0  = fluidBoundaries[1] + dy/2 + wallSpacing*(+dx/tmp);
 
   // fill the boundary through iterative floodfill
   mpsFloodfill(fluidPointsHd, fluidBoundaries, nFluidBoundaries,
@@ -608,5 +606,5 @@ int main() {
 
   return 0;
 }
-
-
+ 
+ 
