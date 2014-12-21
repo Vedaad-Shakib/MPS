@@ -29,4 +29,4 @@ run:: mps
 	mps
 
 clean::
-	rm -rf mps *.o *.dat mps.out *.pyc mps.dSYM Log
+	rm -rf mps *.o *.dat mps.out *.pyc mps.dSYM Log *~

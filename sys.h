@@ -1,12 +1,12 @@
 /*******************************************************************************
-** Copyright 2014-2014 Vedaad Shakib Inc.
-*******************************************************************************/
+ ** Copyright 2014-2014 Vedaad Shakib Inc.
+ *******************************************************************************/
 
 /*******************************************************************************
-** 
-** "sys.h": standard system level include
-**
-*******************************************************************************/
+ ** 
+ ** "sys.h": standard system level include
+ **
+ *******************************************************************************/
 
 /*******************************************************************************
  * System includes
@@ -38,12 +38,12 @@
 
 typedef int bool;
 
-#define debugArr(NAME,SIZE,NDIMS) printf("Debug array %s: \n", #NAME);   \
-				   for (int u = 0; u < SIZE; u++) {     \
-                                     for (int w = 0; w < NDIMS; w++)    \
-				       printf("%lf ", NAME[u*NDIMS+w]); \
-				     printf("\n");                      \
-				   }                                  
+#define debugArr(NAME,SIZE,NDIMS) printf("Debug array %s: \n", #NAME);        \
+                                  for (int u = 0; u < SIZE; u++) {            \
+                                      for (int w = 0; w < NDIMS; w++)         \
+                                          printf("%lf ", NAME[u*NDIMS+w]);    \
+                                      printf("\n");                           \
+                                  }                                  
 
 // for allocation echos
 // #define MEM_ECHO 1
