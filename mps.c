@@ -65,7 +65,7 @@ int mpsContainsLine(double *wallSegments, int nWallSegments, double x1, double y
  *            y2: the y coordinate of the second point
  *******************************************************************************
  */
-double mpsDist(int x1, int y1, int x2, int y2) {
+double mpsDist(double x1, double y1, double x2, double y2) {
     return sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
 }
 
@@ -530,8 +530,8 @@ int main() {
     
     // fill ghostPointsHd with the ghost points
     tmp = ghostPointsHd->nGhostPoints-1; // because it is changing in the for loop
-    
-    for (int i = 0; i < tmp; i++) {
+
+    for (int i = 0; i < (int) tmp; i++) {
         // check if the ghost segment is an actual ghost segment or just a segment with two points from different segments
         if (!mpsContainsLine(wallSegments, nWallSegments, cornersHd->cornerCrds[2*i+0], cornersHd->cornerCrds[2*i+1], cornersHd->cornerCrds[2*(i+1)+0], cornersHd->cornerCrds[2*(i+1)+1]))
             continue;
@@ -540,9 +540,7 @@ int main() {
                        ghostPointsHd->ghostPointCrds[2*i+0], ghostPointsHd->ghostPointCrds[2*i+1]);
         tmp2 = mpsDist(cornersHd->cornerCrds[2*(i+1)+0], cornersHd->cornerCrds[2*(i+1)+1],
                        ghostPointsHd->ghostPointCrds[2*(i+1)+0], ghostPointsHd->ghostPointCrds[2*(i+1)+1]);
-        
         nSegs = fmax(ceil(tmp1 / wallSpacing), ceil(tmp2 / wallSpacing));
-        
         dx1 = (ghostPointsHd->ghostPointCrds[2*i+0] - cornersHd->cornerCrds[2*i+0]) / nSegs;
         dy1 = (ghostPointsHd->ghostPointCrds[2*i+1] - cornersHd->cornerCrds[2*i+1]) / nSegs;
         dx2 = (ghostPointsHd->ghostPointCrds[2*(i+1)+0] - cornersHd->cornerCrds[2*(i+1)+0]) / nSegs;

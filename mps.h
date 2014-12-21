@@ -87,7 +87,7 @@ void		 mpsFreeFluidPoints(MpsFluidPointsHd fluidPointsHd);
 
 void   mpsOutCrd(char *fileName, double *crd, int nPoints);
 int    mpsContainsLine(double *wallSegments, int nWallSegments, double x1, double y1, double x2, double y2);
-double mpsDist(int x1, int y1, int x2, int y2);
+double mpsDist(double x1, double y1, double x2, double y2);
 void   mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegments,
 		       MpsGhostPointsHd ghostPointsHd, int nGhostPoints, double radius);
 void   mpsConstructIntermediatePoints(double *cornerPoints, int nCornerPoints, double **outPoints,
