@@ -275,6 +275,7 @@ int mpsIntegerize(double min, double val, double wallSpacing) {
  *******************************************************************************
  */
 bool mpsCrossesFluidBoundary(double *fluidBoundaries, int nFluidBoundaries,
+			     double *wallSegments, int nWallSegments,
                              double x1, double y1, double x2, double y2) {
     for (int i = 0; i < nFluidBoundaries; i++) {
         if (mpsLinesIntersect(x1, y1, x2, y2,
@@ -283,6 +284,15 @@ bool mpsCrossesFluidBoundary(double *fluidBoundaries, int nFluidBoundaries,
             return true;
         }
     }
+
+    for (int i = 0; i < nWallSegments; i++) {
+	if (mpsLinesIntersect(x1, y1, x2, y2,
+			      wallSegments[4*i+0], wallSegments[4*i+1],
+			      wallSegments[4*i+2], wallSegments[4*i+3])) {
+	    return true;
+	}
+    }
+
     return false;
 }
 
@@ -290,13 +300,13 @@ bool mpsCrossesFluidBoundary(double *fluidBoundaries, int nFluidBoundaries,
  * "mpsLinesIntersect": checks whether a line crosses another line
  *
  * Parameters:
- *            a1x: the x coordinate of the first point of the line 
- *            a1y: the x coordinate of the second point of the line 
- *            a2x: the y coordinate of the first point of the line 
- *            a2y: the y coordinate of the second point of the line 
+ *            a1x: the x coordinate of the first point of the first line 
+ *            a1y: the y coordinate of the first point of the first line 
+ *            a2x: the x coordinate of the second point of the first line 
+ *            a2y: the y coordinate of the second point of the first line 
  *            a1x: the x coordinate of the first point of the second line
- *            a1y: the x coordinate of the second point of the second line
- *            a2x: the y coordinate of the first point of the second line
+ *            a1y: the y coordinate of the first point of the second line
+ *            a2x: the x coordinate of the second point of the second line
  *            a2y: the y coordinate of the second point of the second line
  *******************************************************************************
  */
@@ -345,7 +355,8 @@ bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
  *            wallSpacing: the mpsDistance between the points
  *******************************************************************************
  */
-void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int nFluidBoundaries,
+void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries,
+		  int nFluidBoundaries, double* wallSegments, int nWallSegments,
                   double initX, double initY, double wallSpacing) {
     double       x;             /* the x coordinate */
     double       y;             /* the y coordinate */
@@ -404,25 +415,29 @@ void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries, int n
         fluidPointsHd->nFluidPoints++;
         
         // check and add the four adjacent points to the queue
-        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x+wallSpacing, y) &&
+        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
+				     nWallSegments, x, y, x+wallSpacing, y) &&
             !visited[(xInt+1)+yInt*xDim]) {
             quePush(queHd, x+wallSpacing);
             quePush(queHd, y);
             visited[(xInt+1)+yInt*xDim] = true;
         }
-        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x, y+wallSpacing) &&
+        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
+				     nWallSegments, x, y, x, y+wallSpacing) &&
             !visited[xInt+(yInt+1)*xDim]) {
             quePush(queHd, x);
             quePush(queHd, y+wallSpacing);
             visited[xInt+(yInt+1)*xDim] = true;
         }
-        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x-wallSpacing, y) &&
+        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
+				     nWallSegments, x, y, x-wallSpacing, y) &&
             !visited[(xInt-1)+(yInt*xDim)]) {
             quePush(queHd, x-wallSpacing);
             quePush(queHd, y);
             visited[(xInt-1)+(yInt*xDim)] = true;
         }
-        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x, y, x, y-wallSpacing) &&
+        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
+				     nWallSegments, x, y, x, y-wallSpacing) &&
             !visited[xInt+(yInt-1)*xDim]) {
             quePush(queHd, x);
             quePush(queHd, y-wallSpacing);
@@ -453,6 +468,8 @@ int main() {
     double               dy2;               /* change in y */
     double               x0;                /* the initial x */
     double               y0;                /* the initial y */
+    double               x1;                /* another x */
+    double               y1;                /* another y */
     int                  nSegs;             /* number of local wall intervals between points */
     int                  nWallSegments;	    /* the number of glocal wall segmnets */
     int                  nCorners;	    /* the number of global corners */
@@ -592,16 +609,33 @@ int main() {
         exit(0);
     } 
     
-    // add starting point for floodfill
-    dx  = (fluidBoundaries[2] - fluidBoundaries[0]);
-    dy  = (fluidBoundaries[3] - fluidBoundaries[1]);
-    tmp = sqrt(dx*dx + dy*dy);
-    x0  = fluidBoundaries[0] + dx/2 + wallSpacing*(-dy/tmp);
-    y0  = fluidBoundaries[1] + dy/2 + wallSpacing*(+dx/tmp);
+    // add starting point for floodfill 
+    for (int i = 0; i < nFluidBoundaries; i++) {
+	// create point just inside the fluid boundary
+	dx  = (fluidBoundaries[4*i+2] - fluidBoundaries[4*i+0]);
+	dy  = (fluidBoundaries[4*i+3] - fluidBoundaries[4*i+1]);
+	tmp = sqrt(dx*dx + dy*dy);
+	x0  = fluidBoundaries[4*i] + dx/2 + wallSpacing*(-dy/tmp);
+	y0  = fluidBoundaries[4*i+1] + dy/2 + wallSpacing*(+dx/tmp);
+	x1  = ghostPointsHd->ghostPointCrds[0];
+	y1  = ghostPointsHd->ghostPointCrds[1];
+	// and check if it's on the right side of the wall (which is opposite the ghost points)
+	// if the point and a ghost point intersect only one wall segment, then it is
+	// has to be on the right side of the wall, where we want to start the floodfill
+	tmp = 0;
+	for (int j = 0; j < nWallSegments; j++) {
+	    // if the current point and a ghost point are on opposite sides of a wall segment
+	    if (mpsLinesIntersect(x0, y0, x1, y1, wallSegments[4*j+0], wallSegments[4*j+1],
+				  wallSegments[4*j+2], wallSegments[4*j+3]))
+		tmp++;
+	}
+	if (tmp == 1)
+	    mpsFloodfill(fluidPointsHd, fluidBoundaries,
+			 nFluidBoundaries, wallSegments, nWallSegments, 
+			 x0, y0, wallSpacing);
+    }
     
-    // fill the boundary through iterative floodfill
-    mpsFloodfill(fluidPointsHd, fluidBoundaries, nFluidBoundaries,
-                 x0, y0, wallSpacing);
+
     
     mpsOutCrd("fluid_points.dat", fluidPointsHd->fluidPointCrds, fluidPointsHd->nFluidPoints);
     
