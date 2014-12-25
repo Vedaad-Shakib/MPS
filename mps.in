@@ -1,15 +1,18 @@
 0.4
-0.1
+0.2
+5
+5 5 4 4
+4 4 3 0
+3 0 1 0
+1 0 2 3
+2 3 0 9
 4
-4 4 3.5 3
-3.5 3 2 2
-2 2 .5 3
-.5 3 0 4
-4
--2 4 -2 0
-5 4 -2 4
--2 0 5 0
-5 0 5 4
+9 3 0 3
+0 3 0 0
+0 0 9 0
+9 0 9 3
+3 3
+2 1
 
 Format:
 1: radius of influence
@@ -18,7 +21,7 @@ Format:
 4-4+nWallSegments-1: list of wall segment boundaries
 4+nWallSegments-1: number of fluid boundaries
 4+nWallSegments+nFluidSegments-2: list of fluid segment boundaries
-
+4+nWallSegments+nFluidSegments-1: starting point for floodfill (boundary must be closed)
 
 Note: ghost points (walls) are calculated on the left side of the wall segment vector and
       fluid points are calculated on the left side of the fluid segment vector

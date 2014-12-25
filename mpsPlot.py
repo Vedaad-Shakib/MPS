@@ -70,4 +70,5 @@ def mpsPlot(data):
         if not "line" in i and not "point" in i:
             pyplot.scatter(x, y, c=color, s=markersize, marker=marker)
                 
+    pyplot.axes().set_aspect('equal')
     pyplot.show( block = False )

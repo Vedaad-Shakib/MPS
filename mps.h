@@ -90,9 +90,9 @@ int    mpsContainsLine(double *wallSegments, int nWallSegments, double x1, doubl
 double mpsDist(double x1, double y1, double x2, double y2);
 void   mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegments,
 		       MpsGhostPointsHd ghostPointsHd, int nGhostPoints, double radius);
-void   mpsConstructIntermediatePoints(double *cornerPoints, int nCornerPoints, double **outPoints,
-				   int *nOutPoints, int *maxOutPoints, double wallSpacing,
-				   bool containsStart, bool containsEnd);
+void   mpsConstructIntermediatePoints(double *cornerPoints, int nCornerPoints, int nSegs, double **outPoints, 
+				      int *nOutPoints, int *maxOutPoints, double wallSpacing,
+				      bool containsStart, bool containsEnd);
 bool   mpsCheckClosure(double *fluidBoundaries, int nFluidBoundaries);
 int    mpsIntegerize(double min, double val, double wallSpacing);
 bool   mpsCrossesFluidBoundaries(double *fluidBoundaries, int nFluidBoundaries,
