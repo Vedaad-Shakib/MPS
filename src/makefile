@@ -8,12 +8,11 @@
 
 all:: install
 
-include make/make.all
+include ../make/make.all
 
-DIRS = src test
+DIRS	= sys mem que mps
 
 install:: install_dirs
 
 clean:: clean_dirs
-	rm -rf *~
 

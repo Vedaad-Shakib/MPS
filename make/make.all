@@ -1,0 +1,63 @@
+#*******************************************************************************          
+#** Copyright 2014-2014 Vedaad Shakib Inc.
+#*******************************************************************************
+
+#*******************************************************************************          
+#** "make.all": Common make commands
+#*******************************************************************************          
+
+MAKEDIR := $(dir $(lastword $(MAKEFILE_LIST)))
+ROOTDIR := $(abspath $(MAKEDIR)/..)
+
+INCDIR = $(ROOTDIR)/include
+LIBDIR = $(ROOTDIR)/lib
+DOCDIR = $(ROOTDIR)/doc
+BINDIR = $(ROOTDIR)/bin
+
+INSTALL = cp -f
+CP      = cp -f
+RM      = rm -rf
+AR      = ar -ru
+MKDIR   = mkdir -p
+
+CC      = gcc
+CCFLAGS = -std=c99 -I ./include/ -g -static -O0
+LD      = gcc
+LDFLAGS = -L$(LIBDIR)
+LDLIBS  = -lm
+
+#*******************************************************************************          
+# Basic rules
+#*******************************************************************************          
+
+$(INCDIR):
+	$(MKDIR) $(INCDIR)
+
+$(LIBDIR):
+	$(MKDIR) $(LIBDIR)
+
+$(BINDIR):
+	$(MKDIR) $(BINDIR)
+
+$(DOCDIR):
+	$(MKDIR) $(DOCDIR)
+
+clean_all:: clean_dirs
+	    $(RM) $(INCDIR) $(LIBDIR) $(BINDIR) $(DOCDIR)
+
+#*******************************************************************************          
+# subdirectories
+#*******************************************************************************          
+
+install_dirs::
+	for i in $(DIRS); do \
+	    echo "******** make in ***" $$i; \
+	        $(MAKE) -C $$i; \
+		done
+
+clean_dirs::
+	for i in $(DIRS); do \
+	    echo "******** make in ***" $$i; \
+	    $(MAKE) -C $$i clean; \
+	    done
+

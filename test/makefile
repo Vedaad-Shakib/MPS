@@ -6,14 +6,13 @@
 #** "makefile": makefile
 #*******************************************************************************          
 
-all:: install
+all:: run
 
-include make/make.all
+include ../make/make.all
 
-DIRS = src test
+run:: 
+	$(BINDIR)/mps
 
-install:: install_dirs
-
-clean:: clean_dirs
-	rm -rf *~
+clean::
+	rm -rf *.dat mps.out *.pyc mps.dSYM Log *~
 

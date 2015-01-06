@@ -8,12 +8,13 @@
 
 all:: install
 
-include make/make.all
+include ../../make/make.all
 
-DIRS = src test
+install:: $(INCDIR)/sys.h
 
-install:: install_dirs
+$(INCDIR)/sys.h: $(INCDIR) sys.h
+	$(INSTALL) sys.h $(INCDIR)/sys.h
 
-clean:: clean_dirs
-	rm -rf *~
+clean::
+	# noop
 

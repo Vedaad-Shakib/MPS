@@ -8,12 +8,22 @@
 
 all:: install
 
-include make/make.all
+include ../../make/make.all
 
-DIRS = src test
+install:: $(INCDIR)/que.h $(LIBDIR)/libque.a
 
-install:: install_dirs
+$(INCDIR)/que.h: $(INCDIR) que.h
+	$(INSTALL) que.h $(INCDIR)/que.h
 
-clean:: clean_dirs
-	rm -rf *~
+$(LIBDIR)/libque.a: $(LIBDIR) libque.a
+	$(INSTALL) libque.a $(LIBDIR)/libque.a
+
+libque.a: que.o
+	$(AR) libque.a que.o
+
+que.o: que.h que.c $(INCDIR)/mem.h
+	$(CC) -c $(CCFLAGS) -I$(INCDIR) que.c
+
+clean::
+	$(RM) que.o libque.a
 
