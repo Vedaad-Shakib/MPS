@@ -10,7 +10,7 @@ all:: install
 
 include ../../make/make.all
 
-INCS	= $(INCDIR)/sys.h $(INCDIR)/mem.h $(INCDIR)/que.h
+INCS	= $(INCDIR)/sys.h $(INCDIR)/mem.h $(INCDIR)/que.h $(INCDIR)/stn.h
 
 install:: $(INCDIR)/mps.h $(BINDIR)/mps
 
@@ -35,7 +35,7 @@ mpsGhostPoints.o: mps.h mpsGhostPoints.c $(INCS)
 MPSOBJS	= mps.o mpsCorners.o mpsWallPoints.o mpsGhostPoints.o mpsFluidPoints.o
 
 mps: $(MPSOBJS)
-	$(LD) -o mps $(LDFLAGS) $(MPSOBJS) -lque $(LDLIBS)
+	$(LD) -o mps $(LDFLAGS) $(MPSOBJS) -lque -lstn $(LDLIBS)
 
 $(BINDIR)/mps: $(BINDIR) mps
 	$(INSTALL) mps $(BINDIR)/mps

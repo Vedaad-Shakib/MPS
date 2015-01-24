@@ -15,6 +15,7 @@
 #include "sys.h"
 #include "mps.h"
 #include "que.h"
+#include "stn.h"
 
 /*******************************************************************************
  * "mpsOutCrd": output the coordinates into a file
@@ -266,17 +267,17 @@ int mpsIntegerize(double min, double val, double wallSpacing) {
 }
 
 /*******************************************************************************
- * "mpsCrossesFluidBoundary": checks whether a line crosses  one fluid boundary
+ * "mpsCrossesFluidBoundary": checks whether a line segment crosses any fluid boundaries or wall segments
  *
  * Parameters:
- *            a1x: the x coordinate of the first point of the line 
- *            a2x: the y coordinate of the first point of the line 
- *            a1y: the x coordinate of the second point of the line 
- *            a2y: the y coordinate of the second point of the line 
- *            a1x: the x coordinate of the first point of the boundary
- *            a2x: the y coordinate of the first point of the boundary
- *            a1y: the x coordinate of the second point of the boundary
- *            a2y: the y coordinate of the second point of the boundary
+ *            fluidBoundaries: the list of fluid boundaries
+ *            nFluidBoundaries: the number of fluid boundaries
+ *            wallSegments: the list of wall segments
+ *            nWallSegments: the number of wall segments
+ *            x1: the x coordinate of the first point of the line
+ *            y1: the y coordinate of the first point of the line
+ *            x2: the x coordinate of the second point of the line
+ *            y2: the y coordinate of the second point of the line
  *******************************************************************************
  */
 bool mpsCrossesFluidBoundary(double *fluidBoundaries, int nFluidBoundaries,
@@ -309,10 +310,10 @@ bool mpsCrossesFluidBoundary(double *fluidBoundaries, int nFluidBoundaries,
  *            a1y: the y coordinate of the first point of the first line 
  *            a2x: the x coordinate of the second point of the first line 
  *            a2y: the y coordinate of the second point of the first line 
- *            a1x: the x coordinate of the first point of the second line
- *            a1y: the y coordinate of the first point of the second line
- *            a2x: the x coordinate of the second point of the second line
- *            a2y: the y coordinate of the second point of the second line
+ *            b1x: the x coordinate of the first point of the second line
+ *            b1y: the y coordinate of the first point of the second line
+ *            b2x: the x coordinate of the second point of the second line
+ *            b2y: the y coordinate of the second point of the second line
  *******************************************************************************
  */
 bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
@@ -326,10 +327,10 @@ bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
     double      det;            /* the determinant */
     double      alpha;          /* mpsDistance coefficient */
     double      beta;           /* mpsDistance coefficient */
-    double      tol;            /* check tolerance */
+    double      tol;            /* tolerance for floating-point error */
     
     tol = 1.e-12;
-
+    
     dax  = a2x-a1x;
     day  = a2y-a1y;
     dbx  = b1x-b2x;
@@ -486,11 +487,9 @@ int main() {
     MpsGhostPointsHd     ghostPointsHd;	    /* ghostPoints structure */
     MpsFluidPointsHd     fluidPointsHd;	    /* fluidPoints structure */
     FILE                *fin;               /* input file */
-    FILE                *fout;              /* output file */
-    
-    fin  = fopen("mps.in", "r");
-    fout = fopen("mps.out", "w");
-    
+
+    fin  = fopen("/Users/farzin/MPS/test/mps.in", "r");
+
     /*=======================================================================================
      * Input and create wall points and ghost points
      *=======================================================================================
@@ -500,29 +499,28 @@ int main() {
     fscanf(fin, "%lf", &r);
     fscanf(fin, "%lf", &wallSpacing);
     fscanf(fin, "%d",  &nWallSegments);
-    
+
     // initialize wall and ghost points
     wallSegments  = memNew(double, nWallSegments * 4); 
     cornersHd     = mpsNewCorners();
     wallPointsHd  = mpsNewWallPoints();
     ghostPointsHd = mpsNewGhostPoints();
-    
+
+
     for (int i = 0; i < nWallSegments; i++) {
         fscanf(fin, "%le %le %le %le", 
                &wallSegments[4*i+0], &wallSegments[4*i+1], 
                &wallSegments[4*i+2], &wallSegments[4*i+3]); 
     }
-    
+
     mpsOutCrd("wall_segments.dat", wallSegments, nWallSegments*2);
-    
-    
-    
+
     // create the corners from wall segments list
     for (int i = 0; i < nWallSegments; i++) {
         mpsGetCornerId(cornersHd, wallSegments[4*i+0], wallSegments[4*i+1]);
         mpsGetCornerId(cornersHd, wallSegments[4*i+2], wallSegments[4*i+3]);
     }
-    
+
     // remove later
     mpsOutCrd("corners.dat", cornersHd->cornerCrds, cornersHd->nCorners);
     
@@ -618,11 +616,43 @@ int main() {
     } 
 
     fscanf(fin, "%lf %lf", &x0, &y0);
+
     mpsFloodfill(fluidPointsHd, fluidBoundaries,
 		 nFluidBoundaries, wallSegments, nWallSegments, 
 		 x0, y0, wallSpacing);
 
     mpsOutCrd("fluid_points.dat", fluidPointsHd->fluidPointCrds, fluidPointsHd->nFluidPoints);
+ 
+    StnHd stnHd = stnNew();
+    stnPopulate(stnHd, fluidPointsHd->fluidPointCrds, fluidPointsHd->nFluidPoints, r);
+
+
+    // print stn
+    /*printf("nPoints: %d\n", stnHd->nPoints);
+    printf("nAdjacent: %d\n", stnHd->col[stnHd->nPoints-1]);
+
+    for (int i = 0; i < stnHd->nPoints; i++) {
+	printf("%d\n", stnHd->col[i]);
+    }
+
+    printf("\n\n\n\n");
+    for (int i = 0; i < stnHd->col[stnHd->nPoints-1]; i++) {
+	printf("%f, %f\n", stnHd->row[2*i+0], stnHd->row[2*i+1]);
+	}*/
+    
+    // quick validation of the stn module
+    /*printf("Validate:\n");
+    for (int i = 0; i < fluidPointsHd->nFluidPoints; i++) {
+	printf("%d:\n", i);
+	for (int j = 0; j < fluidPointsHd->nFluidPoints; j++) {
+	    if (i == j) continue;
+	    dx = fluidPointsHd->fluidPointCrds[2*i+0] - fluidPointsHd->fluidPointCrds[2*j+0];
+	    dy = fluidPointsHd->fluidPointCrds[2*i+1] - fluidPointsHd->fluidPointCrds[2*j+1];
+	    tmp = sqrt(dx*dx + dy*dy);
+	    if (tmp <= r) printf("    j: %d, dist: %f\n", j, tmp);
+	}
+	}*/
+
     
     return 0;
 }

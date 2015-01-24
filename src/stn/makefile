@@ -8,11 +8,22 @@
 
 all:: install
 
-include ../make/make.all
+include ../../make/make.all
 
-DIRS	= sys mem que mps stn
+install:: $(INCDIR)/stn.h $(LIBDIR)/libstn.a
 
-install:: install_dirs
+$(INCDIR)/stn.h: $(INCDIR) stn.h
+	$(INSTALL) stn.h $(INCDIR)/stn.h
 
-clean:: clean_dirs
+$(LIBDIR)/libstn.a: $(LIBDIR) libstn.a
+	$(INSTALL) libstn.a $(LIBDIR)/libstn.a
+
+libstn.a: stn.o
+	$(AR) libstn.a stn.o
+
+stn.o: stn.h stn.c $(INCDIR)/mem.h
+	$(CC) -c $(CCFLAGS) -I$(INCDIR) stn.c
+
+clean::
+	$(RM) stn.o libstn.a
 
