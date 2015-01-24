@@ -41,7 +41,7 @@ void mpsOutCrd(char *fileName,double *crd, int nPoints) {
  *
  * Parameters:
  *            corners: a pointer to a list of corners through which the function searches
- *            nCorners: the length of corners
+ *            nPoints: the length of corners
  *            x1: the x coordinate of the first point
  *            y1: the y coordinate of the first point
  *            x2: the x coordinate of the second point
@@ -82,10 +82,10 @@ double mpsDist(double x1, double y1, double x2, double y2) {
  *            radius: the radius of influence
  *******************************************************************************
  */
-void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegments,
-                     MpsGhostPointsHd ghostPointsHd, int nGhostPoints, double radius) {
+void mpsGhostCorners(MpsPointsHd cornersHd, double *wallSegments, int nWallSegments,
+                     MpsPointsHd ghostPointsHd, int nGhostPoints, double radius) {
     
-    double      *cornerCrds;    /* corner coordinates */
+    double      *pointCrds;    /* corner coordinates */
     double      *cornerNDirs;   /* corner normal directions */
     double       dx;            /* delta x */
     double       dy;            /* delta y */
@@ -100,15 +100,15 @@ void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegm
     int          i2;            /* corner index 2 */
     
     // localize data
-    cornerCrds = cornersHd->cornerCrds;
+    pointCrds = cornersHd->pointCrds;
     
     // allocate memory
     cornerNDirs = memNewZero(double, 4 * nGhostPoints);
     
     // computer corner normal directions
     for (int i = 0; i < nWallSegments; i++) {
-        i1  = mpsGetCornerId(cornersHd, wallSegments[4*i+0], wallSegments[4*i+1]);
-        i2  = mpsGetCornerId(cornersHd, wallSegments[4*i+2], wallSegments[4*i+3]);
+        i1  = mpsGetPointId(cornersHd, wallSegments[4*i+0], wallSegments[4*i+1]);
+        i2  = mpsGetPointId(cornersHd, wallSegments[4*i+2], wallSegments[4*i+3]);
         dx  = (wallSegments[4*i+2] - wallSegments[4*i+0]);
         dy  = (wallSegments[4*i+3] - wallSegments[4*i+1]);
         tmp = sqrt(dx*dx + dy*dy);
@@ -146,9 +146,9 @@ void mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegm
             nx  = (+ny2 - ny1) / tmp;
             ny  = (-nx2 + nx1) / tmp;
         }
-        ghostPointsHd->ghostPointCrds[2*i+0] = cornerCrds[2*i+0] + radius * nx;
-        ghostPointsHd->ghostPointCrds[2*i+1] = cornerCrds[2*i+1] + radius * ny;
-        ghostPointsHd->nGhostPoints++;
+        ghostPointsHd->pointCrds[2*i+0] = pointCrds[2*i+0] + radius * nx;
+        ghostPointsHd->pointCrds[2*i+1] = pointCrds[2*i+1] + radius * ny;
+        ghostPointsHd->nPoints++;
     }
     
     // free memory
@@ -361,7 +361,7 @@ bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
  *            wallSpacing: the mpsDistance between the points
  *******************************************************************************
  */
-void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries,
+void mpsFloodfill(MpsPointsHd fluidPointsHd, double *fluidBoundaries,
 		  int nFluidBoundaries, double* wallSegments, int nWallSegments,
                   double initX, double initY, double wallSpacing) {
     double       x;             /* the x coordinate */
@@ -402,7 +402,7 @@ void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries,
     visited = memNewZero(bool, xDim * yDim);
     
     // initialize queue
-    // using queue and while loop because recursion with a depth of nFluidPoints is way too much overhead
+    // using queue and while loop because recursion with a depth of nPoints is way too much overhead
     queHd = queNew();
     quePush(queHd, initX);
     quePush(queHd, initY);
@@ -415,10 +415,10 @@ void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries,
         visited[xInt+yInt*xDim] = true;
         
         // add the point
-        memResize(double, fluidPointsHd->fluidPointCrds, fluidPointsHd->nFluidPoints, fluidPointsHd->nFluidPoints+1, fluidPointsHd->maxFluidPoints, 2);
-        fluidPointsHd->fluidPointCrds[2*fluidPointsHd->nFluidPoints+0] = x;
-        fluidPointsHd->fluidPointCrds[2*fluidPointsHd->nFluidPoints+1] = y;
-        fluidPointsHd->nFluidPoints++;
+        memResize(double, fluidPointsHd->pointCrds, fluidPointsHd->nPoints, fluidPointsHd->nPoints+1, fluidPointsHd->maxPoints, 2);
+        fluidPointsHd->pointCrds[2*fluidPointsHd->nPoints+0] = x;
+        fluidPointsHd->pointCrds[2*fluidPointsHd->nPoints+1] = y;
+        fluidPointsHd->nPoints++;
         
         // check and add the four adjacent points to the queue
         if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
@@ -459,34 +459,34 @@ void mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries,
  *******************************************************************************
  */
 int main() {
-    double               r;                 /* the radius of influence of points */
-    double               wallSpacing;	    /* the rounded spacing between wall points */
-    double              *wallSegments;	    /* an array of wall segments */
-    double               tmp;               /* a temporary real */
-    double               tmp1;              /* a temporary real */
-    double               tmp2;              /* a temporary real */
-    int                  count;             /* a counter */
-    double               tmpArray[4];	    /* a temporary array */
-    double               dx;                /* change in x */
-    double               dx1;               /* change in x */
-    double               dx2;               /* change in x */
-    double               dy;                /* change in y */
-    double               dy1;               /* change in y */
-    double               dy2;               /* change in y */
-    double               x0;                /* the initial x */
-    double               y0;                /* the initial y */
-    double               x1;                /* another x */
-    double               y1;                /* another y */
-    int                  nSegs;             /* number of local wall intervals between points */
-    int                  nWallSegments;	    /* the number of glocal wall segmnets */
-    int                  nCorners;	    /* the number of global corners */
-    int                  nFluidBoundaries;  /* the number of fluid boundaries */
-    double              *fluidBoundaries;   /* an array of the boundaries enclosing the fluid */
-    MpsCornersHd         cornersHd;	    /* corners sturcture */
-    MpsWallPointsHd      wallPointsHd;	    /* wallPoints structure */
-    MpsGhostPointsHd     ghostPointsHd;	    /* ghostPoints structure */
-    MpsFluidPointsHd     fluidPointsHd;	    /* fluidPoints structure */
-    FILE                *fin;               /* input file */
+    double       r;             /* the radius of influence of points */
+    double       wallSpacing;	/* the rounded spacing between wall points */
+    double      *wallSegments;	/* an array of wall segments */
+    double       tmp;           /* a temporary real */
+    double       tmp1;          /* a temporary real */
+    double       tmp2;          /* a temporary real */
+    int          count;         /* a counter */
+    double       tmpArray[4];	/* a temporary array */
+    double       dx;            /* change in x */
+    double       dx1;           /* change in x */
+    double       dx2;           /* change in x */
+    double       dy;            /* change in y */
+    double       dy1;           /* change in y */
+    double       dy2;           /* change in y */
+    double       x0;            /* the initial x */
+    double       y0;            /* the initial y */
+    double       x1;            /* another x */
+    double       y1;            /* another y */
+    int          nSegs;         /* number of local wall intervals between points */
+    int          nWallSegments;	/* the number of glocal wall segmnets */
+    int          nPoints;	/* the number of global corners */
+    int          nFluidBoundaries;	/* the number of fluid boundaries */
+    double      *fluidBoundaries;	/* an array of the boundaries enclosing the fluid */
+    MpsPointsHd  cornersHd;	/* corners sturcture */
+    MpsPointsHd  wallPointsHd;	/* wallPoints structure */
+    MpsPointsHd  ghostPointsHd;	/* ghostPoints structure */
+    MpsPointsHd  fluidPointsHd;	/* fluidPoints structure */
+    FILE        *fin;           /* input file */
 
     fin  = fopen("/Users/farzin/MPS/test/mps.in", "r");
 
@@ -502,9 +502,9 @@ int main() {
 
     // initialize wall and ghost points
     wallSegments  = memNew(double, nWallSegments * 4); 
-    cornersHd     = mpsNewCorners();
-    wallPointsHd  = mpsNewWallPoints();
-    ghostPointsHd = mpsNewGhostPoints();
+    cornersHd     = mpsNewPoints();
+    wallPointsHd  = mpsNewPoints();
+    ghostPointsHd = mpsNewPoints();
 
 
     for (int i = 0; i < nWallSegments; i++) {
@@ -517,79 +517,79 @@ int main() {
 
     // create the corners from wall segments list
     for (int i = 0; i < nWallSegments; i++) {
-        mpsGetCornerId(cornersHd, wallSegments[4*i+0], wallSegments[4*i+1]);
-        mpsGetCornerId(cornersHd, wallSegments[4*i+2], wallSegments[4*i+3]);
+        mpsGetPointId(cornersHd, wallSegments[4*i+0], wallSegments[4*i+1]);
+        mpsGetPointId(cornersHd, wallSegments[4*i+2], wallSegments[4*i+3]);
     }
 
     // remove later
-    mpsOutCrd("corners.dat", cornersHd->cornerCrds, cornersHd->nCorners);
+    mpsOutCrd("corners.dat", cornersHd->pointCrds, cornersHd->nPoints);
     
-    nCorners = mpsGetNCorners(cornersHd);
+    nPoints = mpsGetNPoints(cornersHd);
     
     // initialize the boundary corners of the ghost points
     mpsGhostCorners(cornersHd, wallSegments, nWallSegments, ghostPointsHd,
-                    nCorners, r);
+                    nPoints, r);
     
     // remove later
-    mpsOutCrd("ghost_corners.dat", ghostPointsHd->ghostPointCrds, nCorners);
+    mpsOutCrd("ghost_corners.dat", ghostPointsHd->pointCrds, nPoints);
     
     // initialize the wall points with all corners
-    memResize(double, wallPointsHd->wallPointCrds, 0, cornersHd->nCorners+1, wallPointsHd->maxWallPoints, 2);
+    memResize(double, wallPointsHd->pointCrds, 0, cornersHd->nPoints+1, wallPointsHd->maxPoints, 2);
     
-    for (int i = 0; i < cornersHd->nCorners; i++) {
-        wallPointsHd->wallPointCrds[2*i+0] = cornersHd->cornerCrds[2*i+0];
-        wallPointsHd->wallPointCrds[2*i+1] = cornersHd->cornerCrds[2*i+1];
-        wallPointsHd->nWallPoints++;
+    for (int i = 0; i < cornersHd->nPoints; i++) {
+        wallPointsHd->pointCrds[2*i+0] = cornersHd->pointCrds[2*i+0];
+        wallPointsHd->pointCrds[2*i+1] = cornersHd->pointCrds[2*i+1];
+        wallPointsHd->nPoints++;
     }
     
     // add the intermediate points between the wall corners
     mpsConstructIntermediatePoints(wallSegments, nWallSegments*2, // accepts number of points, not segments
 				   -1, // no reference points
-                                   &(wallPointsHd->wallPointCrds),
-                                   &(wallPointsHd->nWallPoints),
-                                   &(wallPointsHd->maxWallPoints),
+                                   &(wallPointsHd->pointCrds),
+                                   &(wallPointsHd->nPoints),
+                                   &(wallPointsHd->maxPoints),
                                    wallSpacing, false, false);
     
     // fill ghostPointsHd with the ghost points
-    tmp = ghostPointsHd->nGhostPoints-1; // because it is changing in the for loop
+    tmp = ghostPointsHd->nPoints-1; // because it is changing in the for loop
 
     for (int i = 0; i < (int) tmp; i++) {
         // check if the ghost segment is an actual ghost segment or just a segment with two points from different segments
-        if (!mpsContainsLine(wallSegments, nWallSegments, cornersHd->cornerCrds[2*i+0], cornersHd->cornerCrds[2*i+1],
-			     cornersHd->cornerCrds[2*(i+1)+0], cornersHd->cornerCrds[2*(i+1)+1]))
+        if (!mpsContainsLine(wallSegments, nWallSegments, cornersHd->pointCrds[2*i+0], cornersHd->pointCrds[2*i+1],
+			     cornersHd->pointCrds[2*(i+1)+0], cornersHd->pointCrds[2*(i+1)+1]))
             continue;
         
-        tmp1 = mpsDist(cornersHd->cornerCrds[2*i+0], cornersHd->cornerCrds[2*i+1],
-                       ghostPointsHd->ghostPointCrds[2*i+0], ghostPointsHd->ghostPointCrds[2*i+1]);
-        tmp2 = mpsDist(cornersHd->cornerCrds[2*(i+1)+0], cornersHd->cornerCrds[2*(i+1)+1],
-                       ghostPointsHd->ghostPointCrds[2*(i+1)+0], ghostPointsHd->ghostPointCrds[2*(i+1)+1]);
+        tmp1 = mpsDist(cornersHd->pointCrds[2*i+0], cornersHd->pointCrds[2*i+1],
+                       ghostPointsHd->pointCrds[2*i+0], ghostPointsHd->pointCrds[2*i+1]);
+        tmp2 = mpsDist(cornersHd->pointCrds[2*(i+1)+0], cornersHd->pointCrds[2*(i+1)+1],
+                       ghostPointsHd->pointCrds[2*(i+1)+0], ghostPointsHd->pointCrds[2*(i+1)+1]);
         nSegs = ceil(r / wallSpacing);
-        dx1 = (ghostPointsHd->ghostPointCrds[2*i+0] - cornersHd->cornerCrds[2*i+0]) / nSegs;
-        dy1 = (ghostPointsHd->ghostPointCrds[2*i+1] - cornersHd->cornerCrds[2*i+1]) / nSegs;
-        dx2 = (ghostPointsHd->ghostPointCrds[2*(i+1)+0] - cornersHd->cornerCrds[2*(i+1)+0]) / nSegs;
-        dy2 = (ghostPointsHd->ghostPointCrds[2*(i+1)+1] - cornersHd->cornerCrds[2*(i+1)+1]) / nSegs;
+        dx1 = (ghostPointsHd->pointCrds[2*i+0] - cornersHd->pointCrds[2*i+0]) / nSegs;
+        dy1 = (ghostPointsHd->pointCrds[2*i+1] - cornersHd->pointCrds[2*i+1]) / nSegs;
+        dx2 = (ghostPointsHd->pointCrds[2*(i+1)+0] - cornersHd->pointCrds[2*(i+1)+0]) / nSegs;
+        dy2 = (ghostPointsHd->pointCrds[2*(i+1)+1] - cornersHd->pointCrds[2*(i+1)+1]) / nSegs;
         
         // for each two corner and ghostPoint pairs, there are nSegs lines between them which comprise the ghost points
         for (int j = 1; j < nSegs+1; j++) {
-            tmpArray[0] = cornersHd->cornerCrds[2*i+0] + j*dx1;
-            tmpArray[1] = cornersHd->cornerCrds[2*i+1] + j*dy1;
-            tmpArray[2] = cornersHd->cornerCrds[2*(i+1)+0] + j*dx2; // extend by dx of cornerCrds
-            tmpArray[3] = cornersHd->cornerCrds[2*(i+1)+1] + j*dy2;
+            tmpArray[0] = cornersHd->pointCrds[2*i+0] + j*dx1;
+            tmpArray[1] = cornersHd->pointCrds[2*i+1] + j*dy1;
+            tmpArray[2] = cornersHd->pointCrds[2*(i+1)+0] + j*dx2; // extend by dx of pointCrds
+            tmpArray[3] = cornersHd->pointCrds[2*(i+1)+1] + j*dy2;
             
             mpsConstructIntermediatePoints(tmpArray, 2,
-					   mpsDist(cornersHd->cornerCrds[2*i+0], cornersHd->cornerCrds[2*i+1],
-						   cornersHd->cornerCrds[2*(i+1)+0], cornersHd->cornerCrds[2*(i+1)+1]) / wallSpacing,
-                                           &(ghostPointsHd->ghostPointCrds),
-                                           &(ghostPointsHd->nGhostPoints),
-                                           &(ghostPointsHd->maxGhostPoints),
+					   mpsDist(cornersHd->pointCrds[2*i+0], cornersHd->pointCrds[2*i+1],
+						   cornersHd->pointCrds[2*(i+1)+0], cornersHd->pointCrds[2*(i+1)+1]) / wallSpacing,
+                                           &(ghostPointsHd->pointCrds),
+                                           &(ghostPointsHd->nPoints),
+                                           &(ghostPointsHd->maxPoints),
                                            wallSpacing, true, true);
         }
     }
     
-    mpsOutCrd("ghost_points.dat", ghostPointsHd->ghostPointCrds, ghostPointsHd->nGhostPoints);
+    mpsOutCrd("ghost_points.dat", ghostPointsHd->pointCrds, ghostPointsHd->nPoints);
     
     // remove later
-    mpsOutCrd("wall_points.dat", wallPointsHd->wallPointCrds, wallPointsHd->nWallPoints);
+    mpsOutCrd("wall_points.dat", wallPointsHd->pointCrds, wallPointsHd->nPoints);
     
     /*=======================================================================================
      * Input and create fluid points
@@ -601,7 +601,7 @@ int main() {
     
     // initialize fluidBoundaries and fluidPoints
     fluidBoundaries = memNew(double, nFluidBoundaries*4);
-    fluidPointsHd   = mpsNewFluidPoints();
+    fluidPointsHd   = mpsNewPoints();
     
     for (int i = 0; i < nFluidBoundaries; i++) {
         fscanf(fin, "%le %le %le %le", 
@@ -621,10 +621,10 @@ int main() {
 		 nFluidBoundaries, wallSegments, nWallSegments, 
 		 x0, y0, wallSpacing);
 
-    mpsOutCrd("fluid_points.dat", fluidPointsHd->fluidPointCrds, fluidPointsHd->nFluidPoints);
+    mpsOutCrd("fluid_points.dat", fluidPointsHd->pointCrds, fluidPointsHd->nPoints);
  
     StnHd stnHd = stnNew();
-    stnPopulate(stnHd, fluidPointsHd->fluidPointCrds, fluidPointsHd->nFluidPoints, r);
+    stnPopulate(stnHd, fluidPointsHd->pointCrds, fluidPointsHd->nPoints, r);
 
 
     // print stn
@@ -642,12 +642,12 @@ int main() {
     
     // quick validation of the stn module
     /*printf("Validate:\n");
-    for (int i = 0; i < fluidPointsHd->nFluidPoints; i++) {
+    for (int i = 0; i < fluidPointsHd->nPoints; i++) {
 	printf("%d:\n", i);
-	for (int j = 0; j < fluidPointsHd->nFluidPoints; j++) {
+	for (int j = 0; j < fluidPointsHd->nPoints; j++) {
 	    if (i == j) continue;
-	    dx = fluidPointsHd->fluidPointCrds[2*i+0] - fluidPointsHd->fluidPointCrds[2*j+0];
-	    dy = fluidPointsHd->fluidPointCrds[2*i+1] - fluidPointsHd->fluidPointCrds[2*j+1];
+	    dx = fluidPointsHd->pointCrds[2*i+0] - fluidPointsHd->pointCrds[2*j+0];
+	    dy = fluidPointsHd->pointCrds[2*i+1] - fluidPointsHd->pointCrds[2*j+1];
 	    tmp = sqrt(dx*dx + dy*dy);
 	    if (tmp <= r) printf("    j: %d, dist: %f\n", j, tmp);
 	}

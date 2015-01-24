@@ -12,73 +12,18 @@
  * Point struct data
  *******************************************************************************
  */
-typedef struct _MpsCorners {
-    int          maxCorners;    /* capacity of the cornerCrds array  */
-    int          nCorners;      /* number of corners                     */
-    double      *cornerCrds;    /* the coordinates of the corners    */
-} MpsCorners;
+typedef struct _MpsPoints {
+    int          maxPoints;/* capacity of the fluidPointCrds array */
+    int          nPoints;  /* number of fluid points                 */ 
+    double      *pointCrds;/* the coordinates of the fluid points  */
+} MpsPoints;
 
-typedef struct _MpsWallPoints {
-    int          maxWallPoints; /* capacity of the wallPointCrds array */
-    int          nWallPoints;   /* number of wall points                */
-    double      *wallPointCrds; /* the coordinates of the wall points  */
-} MpsWallPoints;
+typedef MpsPoints* MpsPointsHd;
 
-typedef struct _MpsGhostPoints {
-    int          maxGhostPoints;/* capacity of the ghostPointCrds array */
-    int          nGhostPoints;  /* number of ghost points               */
-    double      *ghostPointCrds;/* the coordinates of the ghost points  */
-} MpsGhostPoints;
-
-typedef struct _MpsFluidPoints {
-    int          maxFluidPoints;/* capacity of the fluidPointCrds array */
-    int          nFluidPoints;  /* number of fluid points                 */ 
-    double      *fluidPointCrds;/* the coordinates of the fluid points  */
-} MpsFluidPoints;
-
-typedef MpsCorners*     MpsCornersHd;
-typedef MpsWallPoints*  MpsWallPointsHd;
-typedef MpsGhostPoints* MpsGhostPointsHd;
-typedef MpsFluidPoints* MpsFluidPointsHd;
-
-/*******************************************************************************
- * Corner function definitions
- *******************************************************************************
- */
-MpsCornersHd    mpsNewCorners();
-int             mpsGetCornerId(MpsCornersHd cornerHd, double x, double y);
-void            mpsFreeCorners(MpsCornersHd cornerHd);
-#define         mpsGetNCorners(C)	((C)->nCorners)
-
-/*******************************************************************************
- * Wall point function definitions
- *******************************************************************************
- */
-
-MpsWallPointsHd mpsNewWallPoints();
-int             mpsGetWallPointId(MpsWallPointsHd wallPointsHd, double x, double y);
-void            mpsFreeWallPoints(MpsWallPointsHd wallPointsHd);
-#define         mpsGetNWallPoints(C)     ((C)->nWallPoints)
-
-/*******************************************************************************
- * Ghost point function definitions
- *******************************************************************************
- */
-
-MpsGhostPointsHd	mpsNewGhostPoints();
-int			mpsGetGhostPointId(MpsGhostPointsHd ghostPointsHd, double x, double y);
-void			mpsFreeGhostPoints(MpsGhostPointsHd ghostPointsHd);
-#define                 mpsGetNGhostPoints(C)  ((C)->nGhostPoints)
-
-/*******************************************************************************
- * Fluid point function definitions
- *******************************************************************************
- */
-
-MpsFluidPointsHd	mpsNewFluidPoints();
-int			mpsGetFluidPointId(MpsFluidPointsHd fluidPointsHd, double x, double y);
-void			mpsFreeFluidPoints(MpsFluidPointsHd fluidPointsHd);
-#define                 mpsGetNFluidPoints(C)  ((C)->nFluidPoints)
+MpsPointsHd	mpsNewPoints();
+int		mpsGetPointId(MpsPointsHd pointsHd, double x, double y);
+void		mpsFreePoints(MpsPointsHd PointsHd);
+#define         mpsGetNPoints(C)	((C)->nPoints)
 
 /*******************************************************************************
  * Mps function definitions
@@ -88,8 +33,8 @@ void			mpsFreeFluidPoints(MpsFluidPointsHd fluidPointsHd);
 void   mpsOutCrd(char *fileName, double *crd, int nPoints);
 int    mpsContainsLine(double *wallSegments, int nWallSegments, double x1, double y1, double x2, double y2);
 double mpsDist(double x1, double y1, double x2, double y2);
-void   mpsGhostCorners(MpsCornersHd cornersHd, double *wallSegments, int nWallSegments,
-                       MpsGhostPointsHd ghostPointsHd, int nGhostPoints, double radius);
+void   mpsGhostCorners(MpsPointsHd cornersHd, double *wallSegments, int nWallSegments,
+                       MpsPointsHd ghostPointsHd, int nGhostPoints, double radius);
 void   mpsConstructIntermediatePoints(double *cornerPoints, int nCornerPoints, int nSegs, double **outPoints, 
                                       int *nOutPoints, int *maxOutPoints, double wallSpacing,
                                       bool containsStart, bool containsEnd);
@@ -100,7 +45,7 @@ bool   mpsCrossesFluidBoundaries(double *fluidBoundaries, int nFluidBoundaries,
                                  double x1, double y1, double x2, double y2);
 bool   mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
                          double b1x, double b1y, double b2x, double b2y);
-void   mpsFloodfill(MpsFluidPointsHd fluidPointsHd, double *fluidBoundaries,
+void   mpsFloodfill(MpsPointsHd fluidPointsHd, double *fluidBoundaries,
                     int nFluidBoundaries, double* wallSegments, int nWallSegments,
                     double initX, double initY, double wallSpacing);
 int    main();

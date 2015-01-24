@@ -20,19 +20,10 @@ $(INCDIR)/mps.h: $(INCDIR) mps.h
 mps.o: mps.h mps.c $(INCS)
 	$(CC) -c $(CCFLAGS) -I$(INCDIR) mps.c
 
-mpsCorners.o: mps.h mpsCorners.c $(INCS)
-	$(CC) -c $(CCFLAGS) -I$(INCDIR) mpsCorners.c
+mpsPoints.o: mps.h mpsPoints.c $(INCS)
+	$(CC) -c $(CCFLAGS) -I$(INCDIR) mpsPoints.c
 
-mpsFluidPoints.o: mps.h mpsFluidPoints.c $(INCS)
-	$(CC) -c $(CCFLAGS) -I$(INCDIR) mpsFluidPoints.c
-
-mpsWallPoints.o: mps.h mpsWallPoints.c $(INCS)
-	$(CC) -c $(CCFLAGS) -I$(INCDIR) mpsWallPoints.c
-
-mpsGhostPoints.o: mps.h mpsGhostPoints.c $(INCS)
-	$(CC) -c $(CCFLAGS) -I$(INCDIR) mpsGhostPoints.c
-
-MPSOBJS	= mps.o mpsCorners.o mpsWallPoints.o mpsGhostPoints.o mpsFluidPoints.o
+MPSOBJS	= mps.o mpsPoints.o
 
 mps: $(MPSOBJS)
 	$(LD) -o mps $(LDFLAGS) $(MPSOBJS) -lque -lstn $(LDLIBS)
