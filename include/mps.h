@@ -30,7 +30,7 @@ void		mpsFreePoints(MpsPointsHd PointsHd);
  *******************************************************************************
  */
 
-void   mpsOutCrd(char *fileName, double *crd, int nPoints);
+void   mpsOutCrd(char *fileName, double *crd, int nPoints, int nDims);
 int    mpsContainsLine(double *wallSegments, int nWallSegments, double x1, double y1, double x2, double y2);
 double mpsDist(double x1, double y1, double x2, double y2);
 void   mpsGhostCorners(MpsPointsHd cornersHd, double *wallSegments, int nWallSegments,

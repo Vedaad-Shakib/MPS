@@ -24,14 +24,18 @@
  *            fileName: the fileName of the file to be written
  *            crd: the list of coordinates to be outputted
  *            nPoints: the length of crd
+ *            nDims: the number of dimensions to the data
  *******************************************************************************
  */
-void mpsOutCrd(char *fileName,double *crd, int nPoints) {
+void mpsOutCrd(char *fileName,double *crd, int nPoints, int nDims) {
     FILE *fout;
     
     fout = fopen(fileName, "w");
     for (int i = 0; i < nPoints; i++) {
-        fprintf(fout, "%.16e %.16e\n", crd[2*i+0], crd[2*i+1]);
+	for (int j = 0; j < nDims; j++) {
+	    fprintf(fout, "%.16e ", crd[nDims*i+j]);
+	}
+	fprintf(fout, "\n");
     }
     fclose(fout);
 } 
@@ -480,12 +484,15 @@ int main() {
     int          nSegs;         /* number of local wall intervals between points */
     int          nWallSegments;	/* the number of glocal wall segmnets */
     int          nPoints;	/* the number of global corners */
-    int          nFluidBoundaries;	/* the number of fluid boundaries */
     double      *fluidBoundaries;	/* an array of the boundaries enclosing the fluid */
+    int          nFluidBoundaries;	/* the number of fluid boundaries */
     MpsPointsHd  cornersHd;	/* corners sturcture */
     MpsPointsHd  wallPointsHd;	/* wallPoints structure */
     MpsPointsHd  ghostPointsHd;	/* ghostPoints structure */
     MpsPointsHd  fluidPointsHd;	/* fluidPoints structure */
+    MpsPointsHd  pointsHd;       /* total points structure */
+    int          nFluidPoints;  /* the total number of fluid points */
+    int          nWallPoints;   /* the total number of wallPoints */
     FILE        *fin;           /* input file */
 
     fin  = fopen("/Users/fshakib/MPS/test/mps.in", "r");
@@ -513,7 +520,7 @@ int main() {
                &wallSegments[4*i+2], &wallSegments[4*i+3]); 
     }
 
-    mpsOutCrd("wall_segments.dat", wallSegments, nWallSegments*2);
+    mpsOutCrd("wall_segments.dat", wallSegments, nWallSegments*2, 2);
 
     // create the corners from wall segments list
     for (int i = 0; i < nWallSegments; i++) {
@@ -522,7 +529,7 @@ int main() {
     }
 
     // remove later
-    mpsOutCrd("corners.dat", cornersHd->pointCrds, cornersHd->nPoints);
+    mpsOutCrd("corners.dat", cornersHd->pointCrds, cornersHd->nPoints, 2);
     
     nPoints = mpsGetNPoints(cornersHd);
     
@@ -531,7 +538,7 @@ int main() {
                     nPoints, r);
     
     // remove later
-    mpsOutCrd("ghost_corners.dat", ghostPointsHd->pointCrds, nPoints);
+    mpsOutCrd("ghost_corners.dat", ghostPointsHd->pointCrds, nPoints, 2);
     
     // initialize the wall points with all corners
     memResize(double, wallPointsHd->pointCrds, 0, cornersHd->nPoints+1, wallPointsHd->maxPoints, 2);
@@ -586,10 +593,10 @@ int main() {
         }
     }
     
-    mpsOutCrd("ghost_points.dat", ghostPointsHd->pointCrds, ghostPointsHd->nPoints);
+    mpsOutCrd("ghost_points.dat", ghostPointsHd->pointCrds, ghostPointsHd->nPoints, 2);
     
     // remove later
-    mpsOutCrd("wall_points.dat", wallPointsHd->pointCrds, wallPointsHd->nPoints);
+    mpsOutCrd("wall_points.dat", wallPointsHd->pointCrds, wallPointsHd->nPoints, 2);
     
     /*=======================================================================================
      * Input and create fluid points
@@ -621,13 +628,41 @@ int main() {
 		 nFluidBoundaries, wallSegments, nWallSegments, 
 		 x0, y0, wallSpacing);
 
-    mpsOutCrd("fluid_points.dat", fluidPointsHd->pointCrds, fluidPointsHd->nPoints);
+    mpsOutCrd("fluid_points.dat", fluidPointsHd->pointCrds, fluidPointsHd->nPoints, 2);
+    
+    // initialize the entire points struct and free the partial point structs
+    pointsHd	      = mpsNewPoints();
+    nFluidPoints      = fluidPointsHd->nPoints;
+    nWallPoints	      = wallPointsHd->nPoints + ghostPointsHd->nPoints;
+    pointsHd->nPoints = nFluidPoints + nWallPoints;
+    memResize(double, pointsHd->pointCrds, 0, pointsHd->nPoints, pointsHd->maxPoints, 2);
+
+    for (int i = 0; i < fluidPointsHd->nPoints; i++) {
+	pointsHd->pointCrds[2*i+0] = fluidPointsHd->pointCrds[2*i+0];
+	pointsHd->pointCrds[2*i+1] = fluidPointsHd->pointCrds[2*i+1];
+    }
+    for (int i = 0; i < ghostPointsHd->nPoints; i++) {
+	pointsHd->pointCrds[2*(nFluidPoints+i)+0] = ghostPointsHd->pointCrds[2*i+0];
+	pointsHd->pointCrds[2*(nFluidPoints+i)+1] = ghostPointsHd->pointCrds[2*i+1];
+    }
+    for (int i = 0; i < wallPointsHd->nPoints; i++) {
+	pointsHd->pointCrds[2*(nFluidPoints+ghostPointsHd->nPoints+i)+0] = wallPointsHd->pointCrds[2*i+0];
+	pointsHd->pointCrds[2*(nFluidPoints+ghostPointsHd->nPoints+i)+1] = wallPointsHd->pointCrds[2*i+1];
+    }
+
+    mpsFreePoints(fluidPointsHd);
+    mpsFreePoints(ghostPointsHd);
+    mpsFreePoints(wallPointsHd);
+
+    mpsOutCrd("all_points.dat", pointsHd->pointCrds, pointsHd->nPoints, 2);
  
-    StnHd stnHd = stnNew(2*nWallSegments);
-    stnPopulate(stnHd, wallSegments, 2*nWallSegments, 0, r);
+    StnHd stnHd = stnNew(pointsHd->nPoints);
+    stnPopulate(stnHd, pointsHd->pointCrds, nFluidPoints, nWallPoints, r);
+
+    mpsOutCrd("density.dat", stnHd->dNum, stnHd->nPoints, 1);
 
     // print stn
-    printf("nPoints: %d\n", stnHd->nPoints);
+    /*printf("nPoints: %d\n", stnHd->nPoints);
     printf("r: %f\n", r);
 
     for (int i = 0; i < stnHd->nPoints; i++) {
@@ -636,9 +671,9 @@ int main() {
 
     printf("\n\n\n\n");
     for (int i = 0; i < stnHd->col[stnHd->nPoints-1]; i++) {
-	printf("%d (%f, %f) (weight: %f) (dist: %f) \n", stnHd->row[i], wallSegments[2*stnHd->row[i]], wallSegments[2*stnHd->row[i]+1], stnHd->weights[i], stnHd->dist[i]);
+	printf("%d (%f, %f) (weight: %f) (dist: %f) \n", stnHd->row[i], pointsHd->pointCrds[2*stnHd->row[i]], pointsHd->pointCrds[2*stnHd->row[i]+1], stnHd->weights[i], stnHd->dist[i]);
     }
-    printf("n0: %f\n", stnHd->n0);
+    printf("n0: %f\n", stnHd->n0);*/
 
     // quick validation of the stn module
     /*printf("Validate:\n");

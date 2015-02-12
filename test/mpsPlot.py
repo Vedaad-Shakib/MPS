@@ -71,4 +71,25 @@ def mpsPlot(data):
             pyplot.scatter(x, y, c=color, s=markersize, marker=marker)
                 
     pyplot.axes().set_aspect('equal')
-    pyplot.show( block = False )
+    pyplot.show(block = False)
+
+def mpsPlotDensity(data, density):
+    pyplot.clf() # clear pyplot
+
+    x = []
+    y = []
+    z = []
+    for j in open(data):
+        j = j.replace("\n", "")
+        try: tmp = [float(k) for k in j.split(" ") if k != ""]
+        except: print j.split(" ")
+        x.append(tmp[0])
+        y.append(tmp[1])
+    for j in open(density):
+        z.append(float(j))
+
+    fig, ax = pyplot.subplots()
+    ax.scatter(x, y, c=z, s=100, edgecolor='')
+    ax.set_aspect('equal')
+    pyplot.show()
+    

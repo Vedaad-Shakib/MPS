@@ -30,10 +30,9 @@ StnHd stnNew(int nPoints) {
     stnHd->col	       = memNew(int, nPoints+1);
     stnHd->weights     = memNew(double, stnHd->maxAdjacent);
     stnHd->dist        = memNew(double, stnHd->maxAdjacent);
-    stnHd->dNum        = memNew(double, nPoints+1);
+    stnHd->dNum        = memNew(double, nPoints);
     for (int i = 0; i < nPoints+1; i++) stnHd->dNum[i] = 0;
-    for (int i = 0; i < nPoints+1; i++) printf("%f\n", stnHd->dNum[i]);
-    stnHd->diagIndex   = memNew(int, nPoints+1);
+    stnHd->diagIndex   = memNew(int, nPoints);
 
     return stnHd;
 }
@@ -78,13 +77,15 @@ void stnPopulate(StnHd stnHd, double *points, int nFluidPoints, int nWallPoints,
 		stnHd->row[count] = j;
 		stnHd->weights[count] = weight(dist, radius);
 		stnHd->dist[count] = dist;
-		stnHd->dNum[i] += stnHd->weights[count];
+		if (i < nFluidPoints) // only fluid points
+		    stnHd->dNum[i] += stnHd->weights[count];
 		count++;
 	    }
 	    if (i == j)
 		stnHd->diagIndex[i] = count;
 	}
-	totDNum += stnHd->dNum[i];
+	if (i < nFluidPoints)
+	    totDNum += stnHd->dNum[i];
     }
     stnHd->col[stnHd->nPoints] = count;
     stnHd->n0 = totDNum/nFluidPoints;
