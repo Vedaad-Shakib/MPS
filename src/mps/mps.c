@@ -488,7 +488,7 @@ int main() {
     MpsPointsHd  fluidPointsHd;	/* fluidPoints structure */
     FILE        *fin;           /* input file */
 
-    fin  = fopen("/Users/farzin/MPS/test/mps.in", "r");
+    fin  = fopen("/Users/fshakib/MPS/test/mps.in", "r");
 
     /*=======================================================================================
      * Input and create wall points and ghost points
@@ -623,23 +623,23 @@ int main() {
 
     mpsOutCrd("fluid_points.dat", fluidPointsHd->pointCrds, fluidPointsHd->nPoints);
  
-    StnHd stnHd = stnNew();
-    stnPopulate(stnHd, fluidPointsHd->pointCrds, fluidPointsHd->nPoints, r);
-
+    StnHd stnHd = stnNew(2*nWallSegments);
+    stnPopulate(stnHd, wallSegments, 2*nWallSegments, 0, r);
 
     // print stn
-    /*printf("nPoints: %d\n", stnHd->nPoints);
-    printf("nAdjacent: %d\n", stnHd->col[stnHd->nPoints-1]);
+    printf("nPoints: %d\n", stnHd->nPoints);
+    printf("r: %f\n", r);
 
     for (int i = 0; i < stnHd->nPoints; i++) {
-	printf("%d\n", stnHd->col[i]);
+	printf("%d: %d (dNum: %f)\n", i, stnHd->col[i], stnHd->dNum[i]);
     }
 
     printf("\n\n\n\n");
     for (int i = 0; i < stnHd->col[stnHd->nPoints-1]; i++) {
-	printf("%f, %f\n", stnHd->row[2*i+0], stnHd->row[2*i+1]);
-	}*/
-    
+	printf("%d (%f, %f) (weight: %f) (dist: %f) \n", stnHd->row[i], wallSegments[2*stnHd->row[i]], wallSegments[2*stnHd->row[i]+1], stnHd->weights[i], stnHd->dist[i]);
+    }
+    printf("n0: %f\n", stnHd->n0);
+
     // quick validation of the stn module
     /*printf("Validate:\n");
     for (int i = 0; i < fluidPointsHd->nPoints; i++) {

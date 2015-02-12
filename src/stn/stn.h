@@ -17,10 +17,14 @@
 // which uses much more memory
 typedef struct {
     int		*col;		/* the number of entries in each row of the adjacency matrix */
-    double	*row;		/* the points adjacent to each point in turn */
-    int		 nPoints;	/* the number of points the stn holds */
-    int          maxPoints;     /* the maximum capacity of the col array */
+    int  	*row;		/* the points adjacent to each point in turn */
     int          maxAdjacent;   /* the maximum capacity of the row array */
+    double      *weights;       /* the weights of each adjacent point */
+    double      *dist;          /* the distance between each point */
+    double      *dNum;          /* the density number of each point */
+    int         *diagIndex;     /* the index of the diagonals in the LHS matrix */
+    int          nPoints;       /* the number of points that stnHd contains */
+    double       n0;            /* the average density number */
 } Stn;
 
 typedef Stn* StnHd;
@@ -31,4 +35,4 @@ typedef Stn* StnHd;
  */
 
 StnHd	stnNew();
-void	stnPopulate(StnHd stnHd, double *points, int nPoints, double radius);
+void	stnPopulate(StnHd stnHd, double *points, int nFluidPoints, int nWallPoints, double radius);
