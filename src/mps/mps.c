@@ -464,6 +464,8 @@ void mpsFloodfill(MpsPointsHd fluidPointsHd, double *fluidBoundaries,
  */
 int main() {
     double       r;             /* the radius of influence of points */
+    double       dt;            /* the time difference between every calculation */
+    double       density;       /* the density of the fluid */
     double       wallSpacing;	/* the rounded spacing between wall points */
     double      *wallSegments;	/* an array of wall segments */
     double       tmp;           /* a temporary real */
@@ -505,6 +507,8 @@ int main() {
     // input radius, wallSpacing, wallSegments
     fscanf(fin, "%lf", &r);
     fscanf(fin, "%lf", &wallSpacing);
+    fscanf(fin, "%lf", &dt);
+    fscanf(fin, "%lf", &density);
     fscanf(fin, "%d",  &nWallSegments);
 
     // initialize wall and ghost points
