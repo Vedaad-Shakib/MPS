@@ -4,15 +4,19 @@
 
 /*******************************************************************************
  ** 
- ** "slv.h": A module for solving equations related to MPS
+ ** "cxs.h": Interface to CXSparse routines
  **
  *******************************************************************************/
 
-#include "slv.h"
-
 /*******************************************************************************
- * Abstract functions
+ * C Function prototypes
  *******************************************************************************
  */
+int	cxsSolveSym(			int*		col,
+					int*		row,
+					double*		mtx,
+					double*		b,
+					double*		x,
+					int		nDims,
+					int		nNonzeros	) ;
 
-double* calcInitialPressure(StnHd stnHd, double dt, double density);

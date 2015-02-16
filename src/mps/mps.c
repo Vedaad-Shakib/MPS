@@ -497,7 +497,7 @@ int main() {
     int          nWallPoints;   /* the total number of wallPoints */
     FILE        *fin;           /* input file */
 
-    fin  = fopen("/Users/fshakib/MPS/test/mps.in", "r");
+    fin  = fopen("/Users/farzin/MPS/test/mps.in", "r");
 
     /*=======================================================================================
      * Input and create wall points and ghost points

@@ -13,7 +13,6 @@
  *******************************************************************************/
 
 #include "sys.h"
-#include "slv.h"
 #include "stn.h"
 
 double* calcInitialPressure(StnHd stnHd, double dt, double density) {
@@ -21,14 +20,14 @@ double* calcInitialPressure(StnHd stnHd, double dt, double density) {
     double rhs[stnHd->nPoints];             /* the rhs of the initial pressure equation */
 
     // calculate lhs
-    for (int i = 0; i < count; i++) stnHd->lhs[i] = 0;
+    for (int i = 0; i < stnHd->col[stnHd->nPoints]; i++) lhs[i] = 0;
     
-    for (int i = 0; i < nFluidPoints+nWallPoints; i++) {
-	l = diagIndex[i];
-	for (int k = col[i]; k < col[i+1]; k++) {
-	    j = row[k];
+    for (int i = 0; i < stnHd->nPoints; i++) {
+	int l = stnHd->diagIndex[i];
+	for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
+	    int j = stnHd->row[k];
 	    if (i == j) continue;
-	    t = weights[k]/dist[k];
+	    int t = stnHd->weights[k]/stnHd->dist[k];
 	    lhs[k] -= t;
 	    lhs[l] += t;
 	}
@@ -36,8 +35,12 @@ double* calcInitialPressure(StnHd stnHd, double dt, double density) {
 
     // calculate rhs
     for (int i = 0; i < stnHd->nPoints; i++) {
-	rhs[i] = -density/(dt*dt) * (stnHd->dNum[i]-n0)/n0;
+	rhs[i] = -density/(dt*dt) * (stnHd->dNum[i]-stnHd->n0)/stnHd->n0;
     }
 
+    // also multiply by -1
+    // count influence of the wall points or not?
     // solve matrix Ax=B
+
+    return NULL; // to avoid error
 }

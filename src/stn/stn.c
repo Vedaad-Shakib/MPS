@@ -33,7 +33,6 @@ StnHd stnNew(int nPoints) {
     stnHd->dNum        = memNew(double, nPoints);
     for (int i = 0; i < nPoints+1; i++) stnHd->dNum[i] = 0;
     stnHd->diagIndex   = memNew(int, nPoints);
-    stnHd->lhs         = memNew(int, stnHd->maxAdjacent);
 
     return stnHd;
 }
@@ -90,19 +89,4 @@ void stnPopulate(StnHd stnHd, double *points, int nFluidPoints, int nWallPoints,
     }
     stnHd->col[stnHd->nPoints] = count;
     stnHd->n0 = totDNum/nFluidPoints;
-
-    // calculate lhs of stability equation
-    memResize(double, stnHd->lhs, 0, count, 100, 1);
-    for (int i = 0; i < count; i++) stnHd->lhs[i] = 0;
-    
-    for (int i = 0; i < nFluidPoints+nWallPoints; i++) {
-	l = diagIndex[i];
-	for (int k = col[i]; k < col[i+1]; k++) {
-	    j = row[k];
-	    if (i == j) continue;
-	    t = weights[k]/dist[k];
-	    lhs[k] -= t;
-	    lhs[l] += t;
-	}
-    }
 }

@@ -6,13 +6,19 @@
 #** "makefile": makefile
 #*******************************************************************************          
 
-all:: install
+all:: run
 
-include ../make/make.all
+include ../../../make/make.all
 
-DIRS	= sys mem que mps stn slv cxs
+main.o: main.c
+	$(CC) -c $(CCFLAGS) -I$(INCDIR) main.c
 
-install:: install_dirs
+test: main.o
+	$(LD) -o test $(LDFLAGS) main.o -lcxs $(CXSPARSELIB) $(LDLIBS)
 
-clean:: clean_dirs
+run: test
+	./test
+
+clean::
+	$(RM) main.o test
 
