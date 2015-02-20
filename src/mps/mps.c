@@ -16,6 +16,7 @@
 #include "mps.h"
 #include "que.h"
 #include "stn.h"
+#include "slv.h"
 
 /*******************************************************************************
  * "mpsOutCrd": output the coordinates into a file
@@ -467,6 +468,7 @@ int main() {
     double       dt;            /* the time difference between every calculation */
     double       density;       /* the density of the fluid */
     double       wallSpacing;	/* the rounded spacing between wall points */
+    double       viscosity;     /* the viscosity */
     double      *wallSegments;	/* an array of wall segments */
     double       tmp;           /* a temporary real */
     double       tmp1;          /* a temporary real */
@@ -495,6 +497,10 @@ int main() {
     MpsPointsHd  pointsHd;       /* total points structure */
     int          nFluidPoints;  /* the total number of fluid points */
     int          nWallPoints;   /* the total number of wallPoints */
+    double      *xVelCurr;      /* the x velocity for the current time step */
+    double      *yVelCurr;      /* the y velocity for the current time step */
+    double      *xVelNext;      /* the x velocity for the next time step */
+    double      *yVelNext;      /* the y velocity for the next time step */
     FILE        *fin;           /* input file */
 
     fin  = fopen("/Users/farzin/MPS/test/mps.in", "r");
@@ -509,6 +515,7 @@ int main() {
     fscanf(fin, "%lf", &wallSpacing);
     fscanf(fin, "%lf", &dt);
     fscanf(fin, "%lf", &density);
+    fscanf(fin, "%lf", &viscosity);
     fscanf(fin, "%d",  &nWallSegments);
 
     // initialize wall and ghost points
@@ -659,11 +666,22 @@ int main() {
     mpsFreePoints(wallPointsHd);
 
     mpsOutCrd("all_points.dat", pointsHd->pointCrds, pointsHd->nPoints, 2);
- 
-    StnHd stnHd = stnNew(pointsHd->nPoints);
-    stnPopulate(stnHd, pointsHd->pointCrds, nFluidPoints, nWallPoints, r);
+
+    // create adjacency structure
+    StnHd stnHd = stnNew(nFluidPoints, nWallPoints);
+    stnPopulate(stnHd, pointsHd->pointCrds, r);
 
     mpsOutCrd("density.dat", stnHd->dNum, stnHd->nPoints, 1);
+
+    // initialize velocity
+    xVelCurr = memNew(double, pointsHd->nPoints);
+    yVelCurr = memNew(double, pointsHd->nPoints);
+    for (int i = 0; i < pointsHd->nPoints; i++) xVelCurr[i] = 0;
+    for (int i = 0; i < pointsHd->nPoints; i++) yVelCurr[i] = 0;
+
+    // time step through velocity
+    xVelNext = slvCalcExplicitVelocity(stnHd, xVelCurr, viscosity, dt, 0);
+    yVelNext = slvCalcExplicitVelocity(stnHd, yVelCurr, viscosity, dt, -9.8);
 
     // print stn
     /*printf("nPoints: %d\n", stnHd->nPoints);

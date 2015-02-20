@@ -19,20 +19,23 @@
 /*******************************************************************************
  * "stnNew": creates a new stn structure
  *******************************************************************************/
-StnHd stnNew(int nPoints) {
+StnHd stnNew(int nFluidPoints, int nWallPoints) {
     StnHd stnHd;
 
-    stnHd	       = memNew(Stn, 1);
-    stnHd->nPoints     = nPoints;
+    stnHd		= memNew(Stn, 1);
+    stnHd->nFluidPoints = nFluidPoints;
+    stnHd->nWallPoints	= nWallPoints;
+    stnHd->nPoints	= nFluidPoints + nWallPoints;
 
     stnHd->maxAdjacent = 100;
     stnHd->row	       = memNew(int, stnHd->maxAdjacent);
-    stnHd->col	       = memNew(int, nPoints+1);
+    stnHd->col	       = memNew(int, stnHd->nPoints+1);
     stnHd->weights     = memNew(double, stnHd->maxAdjacent);
     stnHd->dist        = memNew(double, stnHd->maxAdjacent);
-    stnHd->dNum        = memNew(double, nPoints);
-    for (int i = 0; i < nPoints+1; i++) stnHd->dNum[i] = 0;
-    stnHd->diagIndex   = memNew(int, nPoints);
+    stnHd->dNum        = memNew(double, stnHd->nPoints);
+    stnHd->diagIndex   = memNew(int, stnHd->nPoints);
+
+    for (int i = 0; i < stnHd->nPoints+1; i++) stnHd->dNum[i] = 0;
 
     return stnHd;
 }
@@ -50,7 +53,7 @@ double weight(double dist, double radius) {
     else return 0;
 }
 
-void stnPopulate(StnHd stnHd, double *points, int nFluidPoints, int nWallPoints, double radius) {
+void stnPopulate(StnHd stnHd, double *points, double radius) {
     double	dx;		/* change in x */
     double	dy;		/* change in y */
     double	dist;		/* distance between points */
@@ -77,16 +80,16 @@ void stnPopulate(StnHd stnHd, double *points, int nFluidPoints, int nWallPoints,
 		stnHd->row[count] = j;
 		stnHd->weights[count] = weight(dist, radius);
 		stnHd->dist[count] = dist;
-		if (i < nFluidPoints) // only fluid points
+		if (i < stnHd->nFluidPoints) // only fluid points
 		    stnHd->dNum[i] += stnHd->weights[count];
 		count++;
 	    }
 	    if (i == j)
 		stnHd->diagIndex[i] = count;
 	}
-	if (i < nFluidPoints)
+	if (i < stnHd->nFluidPoints)
 	    totDNum += stnHd->dNum[i];
     }
     stnHd->col[stnHd->nPoints] = count;
-    stnHd->n0 = totDNum/nFluidPoints;
+    stnHd->n0 = totDNum/stnHd->nFluidPoints;
 }

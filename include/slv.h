@@ -4,15 +4,17 @@
 
 /*******************************************************************************
  ** 
- ** "slv.h": A module for solving equations related to MPS
+ ** "slv.h": A module for solving differential equations
  **
  *******************************************************************************/
 
-#include "slv.h"
 
 /*******************************************************************************
  * Abstract functions
  *******************************************************************************
  */
 
-double* calcInitialPressure(StnHd stnHd, double dt, double density);
+double  slvCalcLaplacian(StnHd stnHd, double *vel, int i);
+double* slvCalcExplicitVelocity(StnHd  stnHd, double *vel, double viscosity,
+				double dt,    double  force);
+double* slvCalcInitialPressure(StnHd stnHd, double dt, double density);

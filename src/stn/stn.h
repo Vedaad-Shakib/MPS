@@ -24,6 +24,8 @@ typedef struct {
     double      *dNum;          /* the density number of each point */
     int         *diagIndex;     /* the index of the diagonals in the LHS matrix */
     int          nPoints;       /* the number of points that stnHd contains */
+    int          nFluidPoints;  /* the number of fluid points that stnHd contains */
+    int          nWallPoints;   /* the number of wall points that stnHd contains */
     double       n0;            /* the average density number */
 } Stn;
 
@@ -34,5 +36,5 @@ typedef Stn* StnHd;
  *******************************************************************************
  */
 
-StnHd	stnNew();
-void	stnPopulate(StnHd stnHd, double *points, int nFluidPoints, int nWallPoints, double radius);
+StnHd stnNew(int nFluidPoints, int nWallPoints);
+void  stnPopulate(StnHd stnHd, double *points, double radius);
