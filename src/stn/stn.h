@@ -27,6 +27,8 @@ typedef struct {
     int          nFluidPoints;  /* the number of fluid points that stnHd contains */
     int          nWallPoints;   /* the number of wall points that stnHd contains */
     double       n0;            /* the average density number */
+    double       radius;        /* the radius of influence */
+    double       beta;          /* the free surface constant */
 } Stn;
 
 typedef Stn* StnHd;
@@ -37,4 +39,6 @@ typedef Stn* StnHd;
  */
 
 StnHd stnNew(int nFluidPoints, int nWallPoints);
-void  stnPopulate(StnHd stnHd, double *points, double radius);
+void  stnPopulate(StnHd  stnHd,   double *xCrd, double *yCrd,
+		  double radius,  double  beta);
+void  stnRecalc(StnHd stnHd, double *xCrd, double *yCrd);

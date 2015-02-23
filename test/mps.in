@@ -3,6 +3,7 @@
 0.2
 1
 0.000001
+0.80
 5
 5 5 4 4
 4 4 3 0
@@ -23,6 +24,8 @@ Format:
 3: delta t
 4: density of fluid
 5: viscosity of fluid
+6: beta constant for calculation of free surface points
+   if densityNumber_i <= beta*averageDensityNumber, i is free surface
 6: number of wall segments (nWallSegments)
 7: list of wall segment boundaries
 8: number of fluid boundaries

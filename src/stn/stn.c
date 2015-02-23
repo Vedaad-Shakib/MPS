@@ -53,7 +53,8 @@ double weight(double dist, double radius) {
     else return 0;
 }
 
-void stnPopulate(StnHd stnHd, double *points, double radius) {
+void stnPopulate(StnHd  stnHd,  double *xCrd, double *yCrd,
+		 double radius, double  beta) {
     double	dx;		/* change in x */
     double	dy;		/* change in y */
     double	dist;		/* distance between points */
@@ -66,12 +67,15 @@ void stnPopulate(StnHd stnHd, double *points, double radius) {
     totDNum = 0;
     count = 0;
 
+    stnHd->radius = radius;
+    stnHd->beta   = beta;
+
     // populate the row and col adjacency list
     for (int i = 0; i < stnHd->nPoints; i++) {
 	stnHd->col[i] = count;
 	for (int j = 0; j < stnHd->nPoints; j++) {
-	    dx = points[2*i+0] - points[2*j+0];
-	    dy = points[2*i+1] - points[2*j+1];
+	    dx = xCrd[i+0] - xCrd[j+0];
+	    dy = xCrd[i+1] - xCrd[j+1];
 	    dist = sqrt(dx*dx + dy*dy);
 	    if (dist < radius+tol) {
 		memResize(int, stnHd->row, count, count+1, stnHd->maxAdjacent, 1);
@@ -92,4 +96,33 @@ void stnPopulate(StnHd stnHd, double *points, double radius) {
     }
     stnHd->col[stnHd->nPoints] = count;
     stnHd->n0 = totDNum/stnHd->nFluidPoints;
+}
+
+/*******************************************************************************
+ * "stnRecalc": recalculates the weight and dist (assumes filled row and col)
+ *******************************************************************************
+ */
+void stnRecalc(StnHd stnHd, double *xCrd, double *yCrd) {
+    double	dx;		/* the x distance between two points */
+    double	dy;		/* the y distance between two points */
+    double	dist;		/* the distance between two points */
+
+    // reset density num array
+    for (int i = 0; i < stnHd->nFluidPoints; i++) stnHd->dNum[i] = 0;
+
+    // recalculate the weight and dist using same col and row
+    for (int i = 0; i < stnHd->nFluidPoints; i++) {
+	for (int k = col[i]; k < col[i+1]; k++) {
+	    j = row[k];
+	    if (i == j) continue;
+
+	    dx	 = xCrd[i] - xCrd[j];
+	    dy	 = yCrd[i] - yCrd[j];
+	    dist = sqrt(dx*dx + dy*dy);
+
+	    stnHd->weights[k] = weight(dist, stnHd->radius);
+	    stnHd->dist[k]    = dist;
+	    stnHd->dNum[i]   += stnHd->weights[k];
+	}
+    }
 }

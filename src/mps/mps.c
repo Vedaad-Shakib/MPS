@@ -469,6 +469,7 @@ int main() {
     double       density;       /* the density of the fluid */
     double       wallSpacing;	/* the rounded spacing between wall points */
     double       viscosity;     /* the viscosity */
+    double       beta;          /* beta constant for free surface point calculation */
     double      *wallSegments;	/* an array of wall segments */
     double       tmp;           /* a temporary real */
     double       tmp1;          /* a temporary real */
@@ -494,13 +495,18 @@ int main() {
     MpsPointsHd  wallPointsHd;	/* wallPoints structure */
     MpsPointsHd  ghostPointsHd;	/* ghostPoints structure */
     MpsPointsHd  fluidPointsHd;	/* fluidPoints structure */
-    MpsPointsHd  pointsHd;       /* total points structure */
     int          nFluidPoints;  /* the total number of fluid points */
     int          nWallPoints;   /* the total number of wallPoints */
+    double      *xPosCurr;      /* the x position for the current time step */
+    double      *yPosCurr;      /* the y position for the current time step */
+    double      *xPosNext;      /* the x position for the next time step */
+    double      *yPosNext;      /* the y position for the next time step */
     double      *xVelCurr;      /* the x velocity for the current time step */
     double      *yVelCurr;      /* the y velocity for the current time step */
     double      *xVelNext;      /* the x velocity for the next time step */
     double      *yVelNext;      /* the y velocity for the next time step */
+    double      *pressureCurr;  /* the pressure for the current time step */
+    double      *pressureNext;  /* the pressure for the next time step */
     FILE        *fin;           /* input file */
 
     fin  = fopen("/Users/farzin/MPS/test/mps.in", "r");
@@ -516,6 +522,7 @@ int main() {
     fscanf(fin, "%lf", &dt);
     fscanf(fin, "%lf", &density);
     fscanf(fin, "%lf", &viscosity);
+    fscanf(fin, "%lf", &beta);
     fscanf(fin, "%d",  &nWallSegments);
 
     // initialize wall and ghost points
@@ -642,47 +649,65 @@ int main() {
     mpsOutCrd("fluid_points.dat", fluidPointsHd->pointCrds, fluidPointsHd->nPoints, 2);
     
     // initialize the entire points struct and free the partial point structs
-    pointsHd	      = mpsNewPoints();
     nFluidPoints      = fluidPointsHd->nPoints;
     nWallPoints	      = wallPointsHd->nPoints + ghostPointsHd->nPoints;
-    pointsHd->nPoints = nFluidPoints + nWallPoints;
-    memResize(double, pointsHd->pointCrds, 0, pointsHd->nPoints, pointsHd->maxPoints, 2);
+
+    xPosCurr = memNew(double, nFluidPoints+nWallPoints);
+    yPosCurr = memNew(double, nFluidPoints+nWallPoints);
 
     for (int i = 0; i < fluidPointsHd->nPoints; i++) {
-	pointsHd->pointCrds[2*i+0] = fluidPointsHd->pointCrds[2*i+0];
-	pointsHd->pointCrds[2*i+1] = fluidPointsHd->pointCrds[2*i+1];
+	xPosCurr[i+0] = fluidPointsHd->pointCrds[2*i+0];
+	yPosCurr[i+1] = fluidPointsHd->pointCrds[2*i+1];
     }
     for (int i = 0; i < ghostPointsHd->nPoints; i++) {
-	pointsHd->pointCrds[2*(nFluidPoints+i)+0] = ghostPointsHd->pointCrds[2*i+0];
-	pointsHd->pointCrds[2*(nFluidPoints+i)+1] = ghostPointsHd->pointCrds[2*i+1];
+	xPosCurr[nFluidPoints+i+0] = ghostPointsHd->pointCrds[2*i+0];
+	yPosCurr[nFluidPoints+i+1] = ghostPointsHd->pointCrds[2*i+1];
     }
     for (int i = 0; i < wallPointsHd->nPoints; i++) {
-	pointsHd->pointCrds[2*(nFluidPoints+ghostPointsHd->nPoints+i)+0] = wallPointsHd->pointCrds[2*i+0];
-	pointsHd->pointCrds[2*(nFluidPoints+ghostPointsHd->nPoints+i)+1] = wallPointsHd->pointCrds[2*i+1];
+	xPosCurr[nFluidPoints+ghostPointsHd->nPoints+i+0] = wallPointsHd->pointCrds[2*i+0];
+	yPosCurr[nFluidPoints+ghostPointsHd->nPoints+i+1] = wallPointsHd->pointCrds[2*i+1];
     }
 
     mpsFreePoints(fluidPointsHd);
     mpsFreePoints(ghostPointsHd);
     mpsFreePoints(wallPointsHd);
 
-    mpsOutCrd("all_points.dat", pointsHd->pointCrds, pointsHd->nPoints, 2);
-
     // create adjacency structure
     StnHd stnHd = stnNew(nFluidPoints, nWallPoints);
-    stnPopulate(stnHd, pointsHd->pointCrds, r);
+    stnPopulate(stnHd, xPosCurr, yPosCurr, r, beta);
 
     mpsOutCrd("density.dat", stnHd->dNum, stnHd->nPoints, 1);
 
-    // initialize velocity
-    xVelCurr = memNew(double, pointsHd->nPoints);
-    yVelCurr = memNew(double, pointsHd->nPoints);
-    for (int i = 0; i < pointsHd->nPoints; i++) xVelCurr[i] = 0;
-    for (int i = 0; i < pointsHd->nPoints; i++) yVelCurr[i] = 0;
+    // initialize velocity and position pointers
+    xVelCurr = memNew(double, nFluidPoints+nWallPoints);
+    yVelCurr = memNew(double, nFluidPoints+nWallPoints);
+    xVelNext = memNew(double, nFluidPoints+nWallPoints);
+    yVelNext = memNew(double, nFluidPoints+nWallPoints);
+
+    xPosCurr = memNew(double, nFluidPoints+nWallPoints);
+    yPosCurr = memNew(double, nFluidPoints+nWallPoints);
+    xPosNext = memNew(double, nFluidPoints+nWallPoints);
+    yPosNext = memNew(double, nFluidPoints+nWallPoints);
+
+    pressureCurr = memNew(double, nFluidPoints+nWallPoints);
+    pressureCurr = memNew(double, nFluidPoints+nWallPoints);
+    for (int i = 0; i < nFluidPoints+nWallPoints; i++) xVelCurr[i] = 0;
+    for (int i = 0; i < nFluidPoints+nWallPoints; i++) yVelCurr[i] = 0;
 
     // time step through velocity
-    xVelNext = slvCalcExplicitVelocity(stnHd, xVelCurr, viscosity, dt, 0);
-    yVelNext = slvCalcExplicitVelocity(stnHd, yVelCurr, viscosity, dt, -9.8);
+    slvCalcExplicitVelocity(stnHd, xVelCurr, xVelNext, viscosity, dt, 0);
+    slvCalcExplicitVelocity(stnHd, yVelCurr, yVelNext, viscosity, dt, -9.8);
 
+    // translate velocity to position
+    for (int i = 0; i < nFluidPoints+nWallPoints; i++) xPosNext = xVelCurr[i] + xVelNext*dt;
+    for (int i = 0; i < nFluidPoints+nWallPoints; i++) yPosNext = yVelCurr[i] + yVelNext*dt;
+
+    // recalculate the density number, weights, and dist
+    stnRecalc(stnHd, xPosNext, yPosNext);
+
+    slvCalcPressure(stnHd,    xPosNext, yPosNext,
+		    xVelCurr, yVelCurr, pressureNext,
+		    dt,       density); 
     // print stn
     /*printf("nPoints: %d\n", stnHd->nPoints);
     printf("r: %f\n", r);

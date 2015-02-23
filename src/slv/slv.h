@@ -13,8 +13,8 @@
  * Abstract functions
  *******************************************************************************
  */
-
-double  slvCalcLaplacian(StnHd stnHd, double *vel, int i);
-double* slvCalcExplicitVelocity(StnHd  stnHd, double *vel, double viscosity,
-				double dt,    double  force);
-double* slvCalcInitialPressure(StnHd stnHd, double dt, double density);
+double* slvCalcExplicitVelocity(StnHd   stnHd,   double *vel, double viscosity,
+				double *velStep, double  dt,  double force);
+double* slvCalcPressure(StnHd   stnHd, double *xCrd, double *yCrd,
+			double *xVel,  double *yVel, double *pressure,
+			double  dt,    double  density);

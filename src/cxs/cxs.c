@@ -4,7 +4,7 @@
 
 /*******************************************************************************
  ** 
- ** "cxs.c": Interface for CXSparse
+ ** "cxs.c": an interface for CXSparse routines
  **
  *******************************************************************************/
 
@@ -26,8 +26,9 @@
  **
  ******************************************************************************
  */
-int cxsSolveSym(int *col, int *row, double *mtx, double *b,
-		double *x, int nDims, int nNonzeros) {
+int cxsSolveSym(int    *col,      int    *row, double *mtx,
+		double *b,        double *x,   int     nDims,
+		int     nNonzeros) {
     double     *y;              /* pivoted vector                */
     cs          A;              /* matrix in CS structure        */
     css        *S;              /* symbolic factorized matrix    */
@@ -37,12 +38,12 @@ int cxsSolveSym(int *col, int *row, double *mtx, double *b,
  * Build the CS matrix from input values
  *------------------------------------------------------------------------------
  */
-    A.nzmax = nNonzeros;        /* maximum number of entries        */
-    A.n     = nDims;            /* number of columns                */
-    A.m     = nDims;            /* number of rows                */
-    A.p     = col;              /* column pointers (size n+1)        */
-    A.i     = row;              /* row indices, size nzmax        */
-    A.x     = mtx;              /* numerical values, size nzmax        */
+    A.nzmax = nNonzeros;        /* maximum number of entries    */
+    A.n     = nDims;            /* number of columns            */
+    A.m     = nDims;            /* number of rows               */
+    A.p     = col;              /* column pointers (size n+1)   */
+    A.i     = row;              /* row indices, size nzmax      */
+    A.x     = mtx;              /* numerical values, size nzmax */
     A.nz    = -1;               /* -1 for compressed-col        */
 
 /*------------------------------------------------------------------------------
@@ -62,7 +63,7 @@ int cxsSolveSym(int *col, int *row, double *mtx, double *b,
 
     if (N == NULL) {
         cs_sfree(S);
-        return(0);
+        return 0;
     }
 /*------------------------------------------------------------------------------
  * Allocate working memory
