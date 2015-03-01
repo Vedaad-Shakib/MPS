@@ -35,6 +35,8 @@ StnHd stnNew(int nFluidPoints, int nWallPoints) {
     stnHd->dNum        = memNew(double, stnHd->nPoints);
     stnHd->diagIndex   = memNew(int, stnHd->nPoints);
 
+    stnHd->d = 2;
+
     for (int i = 0; i < stnHd->nPoints+1; i++) stnHd->dNum[i] = 0;
 
     return stnHd;
@@ -112,8 +114,8 @@ void stnRecalc(StnHd stnHd, double *xCrd, double *yCrd) {
 
     // recalculate the weight and dist using same col and row
     for (int i = 0; i < stnHd->nFluidPoints; i++) {
-	for (int k = col[i]; k < col[i+1]; k++) {
-	    j = row[k];
+	for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
+	    int j = stnHd->row[k];
 	    if (i == j) continue;
 
 	    dx	 = xCrd[i] - xCrd[j];
@@ -125,4 +127,15 @@ void stnRecalc(StnHd stnHd, double *xCrd, double *yCrd) {
 	    stnHd->dNum[i]   += stnHd->weights[k];
 	}
     }
+}
+
+void stnFree(StnHd stnHd) {
+    free(stnHd->col);
+    free(stnHd->row);
+    free(stnHd->weights);
+    free(stnHd->dist);
+    free(stnHd->dNum);
+    free(stnHd->diagIndex);
+    
+    free(stnHd);
 }

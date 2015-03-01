@@ -26,7 +26,7 @@ mpsPoints.o: mps.h mpsPoints.c $(INCS)
 MPSOBJS	= mps.o mpsPoints.o
 
 mps: $(MPSOBJS)
-	$(LD) -o mps $(LDFLAGS) $(MPSOBJS) -lque -lstn -lslv $(LDLIBS)
+	$(LD) -o mps $(LDFLAGS) $(MPSOBJS) -lque -lstn -lslv -lcxs $(CXSPARSELIB) $(LDLIBS)
 
 $(BINDIR)/mps: $(BINDIR) mps
 	$(INSTALL) mps $(BINDIR)/mps

@@ -13,7 +13,7 @@
 
 /*******************************************************************************
  ** 
- ** "cxsSolve": solve a symmetric, positive-definite Ax=b using CXSparse routines
+ ** "cxsSolveSym": solve a symmetric, positive-definite Ax=b using CXSparse routines
  **           
  ** Parameters:
  **            col: Adjacency col[nDims+1] (col array of CCS format matrix)

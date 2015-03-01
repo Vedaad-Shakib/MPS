@@ -29,6 +29,7 @@ typedef struct {
     double       n0;            /* the average density number */
     double       radius;        /* the radius of influence */
     double       beta;          /* the free surface constant */
+    int          d;             /* the number of dimensions of the problem */
 } Stn;
 
 typedef Stn* StnHd;
@@ -42,3 +43,4 @@ StnHd stnNew(int nFluidPoints, int nWallPoints);
 void  stnPopulate(StnHd  stnHd,   double *xCrd, double *yCrd,
 		  double radius,  double  beta);
 void  stnRecalc(StnHd stnHd, double *xCrd, double *yCrd);
+void  stnFree(StnHd stnHd);

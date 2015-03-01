@@ -12,7 +12,7 @@
  * C Function prototypes
  *******************************************************************************
  */
-int cxsSolveSym(int    *col,       int    *row, double *mtx,
-		double *b,         double *x,   int     nDims,
-		int	nNonzeros);
+int cxsSolveSym(int    *col,      int    *row, double *mtx,
+		double *b,        double *x,   int     nDims,
+		int     nNonzeros);
 

@@ -15,6 +15,7 @@
 #include "sys.h"
 #include "stn.h"
 #include "slv.h"
+#include "cxs.h"
 
 /*******************************************************************************
  * "slvCalcDivergence": calculates the divergence for a point
@@ -35,7 +36,7 @@ double slvCalcDivergence(StnHd   stnHd, double *xCrd, double *yCrd,
 	       * stnHd->weights[k] / stnHd->dist[k] / stnHd->dist[k];
     }
 
-    return 2 * div / stnHd->n0;
+    return stnHd->d * div / stnHd->n0;
 }
 
 /*******************************************************************************
@@ -53,15 +54,15 @@ double slvCalcLaplacian(StnHd stnHd, double *vel, int i) {
 	else lap += (vel[j] - vel[i]) * stnHd->weights[k] / (stnHd->dist[k]*stnHd->dist[k]);
     }
 
-    return 4 * lap / stnHd->n0;
+    return 2 * stnHd->d * lap / stnHd->n0;
 }
 
 /*******************************************************************************
  * "slvCalcExplicitVelocity": calculates the explicit velocity of the next step, or u_i*
  *******************************************************************************
  */
-void slvCalcExplicitVelocity(StnHd   stnHd,   double *vel, double viscosity,
-	         	     double *velStep, double  dt,  double force) {
+void slvCalcExplicitVelocity(StnHd   stnHd,     double *vel, double *velStep,
+	         	     double  viscosity, double  dt,  double force) {
     double	lap;		/* the laplacian of a certain point */
 
     for (int i = 0; i < stnHd->nPoints; i++) {
@@ -84,7 +85,8 @@ bool slvIsSurfacePoint(StnHd stnHd, int i) {
 }
 
 /*******************************************************************************
- * "slvCalcInitialPressure": calculates the initial pressure of the problem
+ * "slvCalcInitialPressure": calculates the pressure vector and puts it in the
+ *                           pressure vector
  *******************************************************************************
  */
 void slvCalcPressure(StnHd   stnHd, double *xCrd, double *yCrd,
@@ -124,7 +126,7 @@ void slvCalcPressure(StnHd   stnHd, double *xCrd, double *yCrd,
 
     // calculate rhs
     for (int i = 0; i < stnHd->nPoints; i++) {
-	if (slvIsFreeSurface(i))
+	if (slvIsSurfacePoint(stnHd, i))
 	    rhs[i] = 0;
 	else
 	    rhs[i] = -(alpha1 * density/dt * slvCalcDivergence(stnHd, xCrd, yCrd, xVel, yVel, i)) +
@@ -133,5 +135,36 @@ void slvCalcPressure(StnHd   stnHd, double *xCrd, double *yCrd,
 
     cxsSolveSym(stnHd->col, stnHd->row, lhs,
 		rhs,        pressure,   stnHd->nPoints,
-		stnHd->col[stnHd->nPoints])
+		stnHd->col[stnHd->nPoints]);
+}
+
+double slvCalcGradient(StnHd stnHd, double *pressure, double *pos, int i) {
+    double	grad;		/* the gradient */
+    int         minJ;		/* the minimum j */
+    double      minPressure;    /* the minimum pressure */
+
+    grad = 0;
+    minJ = 10000000;
+    for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
+	int j = stnHd->row[k];
+	if (pressure[j] < minPressure) {
+	    minJ = j;
+	    minPressure = pressure[j];
+	}
+    }
+    for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
+	int j = stnHd->row[k];
+	if (i == j) continue;
+
+	grad += (pressure[j] - pressure[minJ])/(stnHd->dist[k]*stnHd->dist[k])*(stnHd->weights[k])*(pos[j]-pos[i]);
+    }
+
+    return stnHd->d * grad / stnHd->n0;
+}
+
+void slvCalcCorrection(StnHd   stnHd, double *pressure, double *velCorrect,
+		       double *pos,   double  density,  double  dt) {
+    for (int i = 0; i < stnHd->nPoints; i++) {
+	velCorrect[i] = -dt/density * slvCalcGradient(stnHd, pressure, pos, i);
+    }
 }

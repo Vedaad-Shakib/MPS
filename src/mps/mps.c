@@ -28,7 +28,8 @@
  *            nDims: the number of dimensions to the data
  *******************************************************************************
  */
-void mpsOutCrd(char *fileName,double *crd, int nPoints, int nDims) {
+void mpsOutCrd(char *fileName, double *crd, int nPoints,
+	       int   nDims) {
     FILE *fout;
     
     fout = fopen(fileName, "w");
@@ -36,6 +37,29 @@ void mpsOutCrd(char *fileName,double *crd, int nPoints, int nDims) {
 	for (int j = 0; j < nDims; j++) {
 	    fprintf(fout, "%.16e ", crd[nDims*i+j]);
 	}
+	fprintf(fout, "\n");
+    }
+    fclose(fout);
+} 
+
+/*******************************************************************************
+ * "mpsOutCrdXY": output the coordinates into a file given two arrays of x, y
+ *
+ * Parameters:
+ *            fileName: the fileName of the file to be written
+ *            xCrd: the list of x coordinates to be outputted
+ *            yCrd: the list of y coordinates to be outputted
+ *            nPoints: the length of crd
+ *******************************************************************************
+ */
+void mpsOutCrdXY(char *fileName, double *xCrd, double *yCrd,
+		 int   nPoints) {
+    FILE *fout;
+    
+    fout = fopen(fileName, "w");
+    for (int i = 0; i < nPoints; i++) {
+	fprintf(fout, "%.16e ", xCrd[i]);
+	fprintf(fout, "%.16e ", yCrd[i]);
 	fprintf(fout, "\n");
     }
     fclose(fout);
@@ -470,6 +494,7 @@ int main() {
     double       wallSpacing;	/* the rounded spacing between wall points */
     double       viscosity;     /* the viscosity */
     double       beta;          /* beta constant for free surface point calculation */
+    double	 nTimeSteps;	/* the number of timesteps that the simulation runs for */
     double      *wallSegments;	/* an array of wall segments */
     double       tmp;           /* a temporary real */
     double       tmp1;          /* a temporary real */
@@ -495,6 +520,7 @@ int main() {
     MpsPointsHd  wallPointsHd;	/* wallPoints structure */
     MpsPointsHd  ghostPointsHd;	/* ghostPoints structure */
     MpsPointsHd  fluidPointsHd;	/* fluidPoints structure */
+    StnHd        stnHd;         /* an adjacency structure */
     int          nFluidPoints;  /* the total number of fluid points */
     int          nWallPoints;   /* the total number of wallPoints */
     double      *xPosCurr;      /* the x position for the current time step */
@@ -505,6 +531,8 @@ int main() {
     double      *yVelCurr;      /* the y velocity for the current time step */
     double      *xVelNext;      /* the x velocity for the next time step */
     double      *yVelNext;      /* the y velocity for the next time step */
+    double      *xVelCorrect;   /* the x velocity correction based on the pressure */
+    double      *yVelCorrect;   /* the y velocity correction based on the pressure */
     double      *pressureCurr;  /* the pressure for the current time step */
     double      *pressureNext;  /* the pressure for the next time step */
     FILE        *fin;           /* input file */
@@ -523,6 +551,7 @@ int main() {
     fscanf(fin, "%lf", &density);
     fscanf(fin, "%lf", &viscosity);
     fscanf(fin, "%lf", &beta);
+    fscanf(fin, "%lf", &nTimeSteps);
     fscanf(fin, "%d",  &nWallSegments);
 
     // initialize wall and ghost points
@@ -673,16 +702,18 @@ int main() {
     mpsFreePoints(wallPointsHd);
 
     // create adjacency structure
-    StnHd stnHd = stnNew(nFluidPoints, nWallPoints);
+    stnHd = stnNew(nFluidPoints, nWallPoints);
     stnPopulate(stnHd, xPosCurr, yPosCurr, r, beta);
 
     mpsOutCrd("density.dat", stnHd->dNum, stnHd->nPoints, 1);
 
     // initialize velocity and position pointers
-    xVelCurr = memNew(double, nFluidPoints+nWallPoints);
-    yVelCurr = memNew(double, nFluidPoints+nWallPoints);
-    xVelNext = memNew(double, nFluidPoints+nWallPoints);
-    yVelNext = memNew(double, nFluidPoints+nWallPoints);
+    xVelCurr	= memNew(double, nFluidPoints+nWallPoints);
+    yVelCurr	= memNew(double, nFluidPoints+nWallPoints);
+    xVelNext	= memNew(double, nFluidPoints+nWallPoints);
+    yVelNext	= memNew(double, nFluidPoints+nWallPoints);
+    xVelCorrect = memNew(double, nFluidPoints+nWallPoints);
+    yVelCorrect = memNew(double, nFluidPoints+nWallPoints);
 
     xPosCurr = memNew(double, nFluidPoints+nWallPoints);
     yPosCurr = memNew(double, nFluidPoints+nWallPoints);
@@ -694,48 +725,52 @@ int main() {
     for (int i = 0; i < nFluidPoints+nWallPoints; i++) xVelCurr[i] = 0;
     for (int i = 0; i < nFluidPoints+nWallPoints; i++) yVelCurr[i] = 0;
 
-    // time step through velocity
-    slvCalcExplicitVelocity(stnHd, xVelCurr, xVelNext, viscosity, dt, 0);
-    slvCalcExplicitVelocity(stnHd, yVelCurr, yVelNext, viscosity, dt, -9.8);
+    for (int i = 0; i < nTimeSteps; i++) {
+        // time step through velocity
+	slvCalcExplicitVelocity(stnHd, xVelCurr, xVelNext, viscosity, dt, 0);
+	slvCalcExplicitVelocity(stnHd, yVelCurr, yVelNext, viscosity, dt, -9.8);
 
-    // translate velocity to position
-    for (int i = 0; i < nFluidPoints+nWallPoints; i++) xPosNext = xVelCurr[i] + xVelNext*dt;
-    for (int i = 0; i < nFluidPoints+nWallPoints; i++) yPosNext = yVelCurr[i] + yVelNext*dt;
+	// recalculate the density number, weights, and dist
+	stnRecalc(stnHd, xPosNext, yPosNext);
 
-    // recalculate the density number, weights, and dist
-    stnRecalc(stnHd, xPosNext, yPosNext);
+	// calculate the pressure vector
+	slvCalcPressure(stnHd,    xPosNext, yPosNext,
+			xVelCurr, yVelCurr, pressureNext,
+			dt,       density);
 
-    slvCalcPressure(stnHd,    xPosNext, yPosNext,
-		    xVelCurr, yVelCurr, pressureNext,
-		    dt,       density); 
-    // print stn
-    /*printf("nPoints: %d\n", stnHd->nPoints);
-    printf("r: %f\n", r);
-
-    for (int i = 0; i < stnHd->nPoints; i++) {
-	printf("%d: %d (dNum: %f)\n", i, stnHd->col[i], stnHd->dNum[i]);
-    }
-
-    printf("\n\n\n\n");
-    for (int i = 0; i < stnHd->col[stnHd->nPoints-1]; i++) {
-	printf("%d (%f, %f) (weight: %f) (dist: %f) \n", stnHd->row[i], pointsHd->pointCrds[2*stnHd->row[i]], pointsHd->pointCrds[2*stnHd->row[i]+1], stnHd->weights[i], stnHd->dist[i]);
-    }
-    printf("n0: %f\n", stnHd->n0);*/
-
-    // quick validation of the stn module
-    /*printf("Validate:\n");
-    for (int i = 0; i < fluidPointsHd->nPoints; i++) {
-	printf("%d:\n", i);
-	for (int j = 0; j < fluidPointsHd->nPoints; j++) {
-	    if (i == j) continue;
-	    dx = fluidPointsHd->pointCrds[2*i+0] - fluidPointsHd->pointCrds[2*j+0];
-	    dy = fluidPointsHd->pointCrds[2*i+1] - fluidPointsHd->pointCrds[2*j+1];
-	    tmp = sqrt(dx*dx + dy*dy);
-	    if (tmp <= r) printf("    j: %d, dist: %f\n", j, tmp);
+	// calculate correction
+	slvCalcCorrection(stnHd,       pressureNext, xVelCorrect,
+			  xPosCurr,    density,      dt);
+	slvCalcCorrection(stnHd,       pressureNext, yVelCorrect,
+			  yPosCurr,    density,      dt);
+	
+	// use correction values to update velocity
+	for (int j = 0; j < stnHd->nPoints; j++) {
+	    xVelNext[j] = xVelNext[j] + xVelCorrect[j];
+	    yVelNext[j] = yVelNext[j] + yVelCorrect[j];
+	    
+	    xPosNext[j] = xPosCurr[j] + dt*xVelNext[j];
+	    yPosNext[j] = yPosCurr[j] + dt*yVelNext[j];
 	}
-	}*/
 
-    
+	char buffer[1024];
+	snprintf(buffer, sizeof(buffer), "mps.%d.out", i);
+	mpsOutCrdXY(buffer, xPosNext, yPosNext, stnHd->nPoints);
+
+	// reset for next time step
+	for (int i = 0; i < nPoints; i++) {
+	    xPosCurr[i]	    = xPosNext[i];
+	    yPosCurr[i]	    = yPosNext[i];
+	    xVelCurr[i]	    = xVelNext[i];
+	    yVelCurr[i]	    = yVelNext[i];
+	    pressureCurr[i] = pressureNext[i];
+	}
+
+	stnFree(stnHd);
+	stnHd = stnNew(nFluidPoints, nWallPoints);
+	stnPopulate(stnHd, xPosCurr, yPosCurr, r, beta);
+    }
+	
     return 0;
 }
 
