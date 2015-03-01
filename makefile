@@ -19,4 +19,6 @@ clean:: clean_dirs
 	rm -rf Log
 	rm -rf \#*
 	rm -rf bin/mps.dSYM
+	rm -rf *.dat
+	rm -rf *.out
 

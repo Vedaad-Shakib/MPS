@@ -684,11 +684,15 @@ int main() {
     xPosCurr = memNew(double, nFluidPoints+nWallPoints);
     yPosCurr = memNew(double, nFluidPoints+nWallPoints);
 
+    printf("nFluidPoints: %d\nnWallpoints: %d\n", nFluidPoints, nWallPoints);
+
     for (int i = 0; i < fluidPointsHd->nPoints; i++) {
+	//printf("%d\n%d\n", i, i+1);
 	xPosCurr[i+0] = fluidPointsHd->pointCrds[2*i+0];
 	yPosCurr[i+1] = fluidPointsHd->pointCrds[2*i+1];
     }
     for (int i = 0; i < ghostPointsHd->nPoints; i++) {
+	//printf("%d\n%d\n", nFluidPoints+i, nFluidPoints+i+1);
 	xPosCurr[nFluidPoints+i+0] = ghostPointsHd->pointCrds[2*i+0];
 	yPosCurr[nFluidPoints+i+1] = ghostPointsHd->pointCrds[2*i+1];
     }
@@ -696,7 +700,7 @@ int main() {
 	xPosCurr[nFluidPoints+ghostPointsHd->nPoints+i+0] = wallPointsHd->pointCrds[2*i+0];
 	yPosCurr[nFluidPoints+ghostPointsHd->nPoints+i+1] = wallPointsHd->pointCrds[2*i+1];
     }
-
+    
     mpsFreePoints(fluidPointsHd);
     mpsFreePoints(ghostPointsHd);
     mpsFreePoints(wallPointsHd);
@@ -721,7 +725,7 @@ int main() {
     yPosNext = memNew(double, nFluidPoints+nWallPoints);
 
     pressureCurr = memNew(double, nFluidPoints+nWallPoints);
-    pressureCurr = memNew(double, nFluidPoints+nWallPoints);
+    pressureNext = memNew(double, nFluidPoints+nWallPoints);
     for (int i = 0; i < nFluidPoints+nWallPoints; i++) xVelCurr[i] = 0;
     for (int i = 0; i < nFluidPoints+nWallPoints; i++) yVelCurr[i] = 0;
 
@@ -766,7 +770,7 @@ int main() {
 	    pressureCurr[i] = pressureNext[i];
 	}
 
-	stnFree(stnHd);
+	//stnFree(stnHd);
 	stnHd = stnNew(nFluidPoints, nWallPoints);
 	stnPopulate(stnHd, xPosCurr, yPosCurr, r, beta);
     }

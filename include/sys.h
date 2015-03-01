@@ -46,4 +46,4 @@ typedef int bool;
                                   }                                  
 
 // for allocation echos
-// #define MEM_ECHO 1
+#define MEM_ECHO 1

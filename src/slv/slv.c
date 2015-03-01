@@ -144,7 +144,7 @@ double slvCalcGradient(StnHd stnHd, double *pressure, double *pos, int i) {
     double      minPressure;    /* the minimum pressure */
 
     grad = 0;
-    minJ = 10000000;
+    minPressure = 100000000;
     for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
 	int j = stnHd->row[k];
 	if (pressure[j] < minPressure) {
