@@ -162,6 +162,10 @@ double slvCalcGradient(StnHd stnHd, double *pressure, double *pos, int i) {
     return stnHd->d * grad / stnHd->n0;
 }
 
+/*******************************************************************************
+ * "slvCalcCorrection": transform u* into u'
+ *******************************************************************************
+ */
 void slvCalcCorrection(StnHd   stnHd, double *pressure, double *velCorrect,
 		       double *pos,   double  density,  double  dt) {
     for (int i = 0; i < stnHd->nPoints; i++) {

@@ -527,12 +527,14 @@ int main() {
     double      *yPosCurr;      /* the y position for the current time step */
     double      *xPosNext;      /* the x position for the next time step */
     double      *yPosNext;      /* the y position for the next time step */
+    double      *xPosStar;      /* the x position for the next time step */
+    double      *yPosStar;      /* the y position for the next time step */
     double      *xVelCurr;      /* the x velocity for the current time step */
     double      *yVelCurr;      /* the y velocity for the current time step */
     double      *xVelNext;      /* the x velocity for the next time step */
     double      *yVelNext;      /* the y velocity for the next time step */
-    double      *xVelCorrect;   /* the x velocity correction based on the pressure */
-    double      *yVelCorrect;   /* the y velocity correction based on the pressure */
+    double      *xVelStar;     /* the x velocity correction based on the pressure */
+    double      *yVelStar;     /* the y velocity correction based on the pressure */
     double      *pressureCurr;  /* the pressure for the current time step */
     double      *pressureNext;  /* the pressure for the next time step */
     FILE        *fin;           /* input file */
@@ -681,18 +683,30 @@ int main() {
     nFluidPoints      = fluidPointsHd->nPoints;
     nWallPoints	      = wallPointsHd->nPoints + ghostPointsHd->nPoints;
 
+    xVelCurr = memNew(double, nFluidPoints+nWallPoints);
+    yVelCurr = memNew(double, nFluidPoints+nWallPoints);
+    xVelNext = memNew(double, nFluidPoints+nWallPoints);
+    yVelNext = memNew(double, nFluidPoints+nWallPoints);
+    xVelStar = memNew(double, nFluidPoints+nWallPoints);
+    yVelStar = memNew(double, nFluidPoints+nWallPoints);
+
     xPosCurr = memNew(double, nFluidPoints+nWallPoints);
     yPosCurr = memNew(double, nFluidPoints+nWallPoints);
+    xPosNext = memNew(double, nFluidPoints+nWallPoints);
+    yPosNext = memNew(double, nFluidPoints+nWallPoints);
+    xPosStar = memNew(double, nFluidPoints+nWallPoints);
+    yPosStar = memNew(double, nFluidPoints+nWallPoints);
+
+    pressureCurr = memNew(double, nFluidPoints+nWallPoints);
+    pressureNext = memNew(double, nFluidPoints+nWallPoints);
 
     printf("nFluidPoints: %d\nnWallpoints: %d\n", nFluidPoints, nWallPoints);
 
     for (int i = 0; i < fluidPointsHd->nPoints; i++) {
-	//printf("%d\n%d\n", i, i+1);
 	xPosCurr[i+0] = fluidPointsHd->pointCrds[2*i+0];
 	yPosCurr[i+1] = fluidPointsHd->pointCrds[2*i+1];
     }
     for (int i = 0; i < ghostPointsHd->nPoints; i++) {
-	//printf("%d\n%d\n", nFluidPoints+i, nFluidPoints+i+1);
 	xPosCurr[nFluidPoints+i+0] = ghostPointsHd->pointCrds[2*i+0];
 	yPosCurr[nFluidPoints+i+1] = ghostPointsHd->pointCrds[2*i+1];
     }
@@ -712,46 +726,38 @@ int main() {
     mpsOutCrd("density.dat", stnHd->dNum, stnHd->nPoints, 1);
 
     // initialize velocity and position pointers
-    xVelCurr	= memNew(double, nFluidPoints+nWallPoints);
-    yVelCurr	= memNew(double, nFluidPoints+nWallPoints);
-    xVelNext	= memNew(double, nFluidPoints+nWallPoints);
-    yVelNext	= memNew(double, nFluidPoints+nWallPoints);
-    xVelCorrect = memNew(double, nFluidPoints+nWallPoints);
-    yVelCorrect = memNew(double, nFluidPoints+nWallPoints);
 
-    xPosCurr = memNew(double, nFluidPoints+nWallPoints);
-    yPosCurr = memNew(double, nFluidPoints+nWallPoints);
-    xPosNext = memNew(double, nFluidPoints+nWallPoints);
-    yPosNext = memNew(double, nFluidPoints+nWallPoints);
-
-    pressureCurr = memNew(double, nFluidPoints+nWallPoints);
-    pressureNext = memNew(double, nFluidPoints+nWallPoints);
     for (int i = 0; i < nFluidPoints+nWallPoints; i++) xVelCurr[i] = 0;
     for (int i = 0; i < nFluidPoints+nWallPoints; i++) yVelCurr[i] = 0;
 
     for (int i = 0; i < nTimeSteps; i++) {
         // time step through velocity
-	slvCalcExplicitVelocity(stnHd, xVelCurr, xVelNext, viscosity, dt, 0);
-	slvCalcExplicitVelocity(stnHd, yVelCurr, yVelNext, viscosity, dt, -9.8);
+	slvCalcExplicitVelocity(stnHd, xVelCurr, xVelStar, viscosity, dt, 0);
+	slvCalcExplicitVelocity(stnHd, yVelCurr, yVelStar, viscosity, dt, -9.8);
 
+	for (int i = 0; i < nFluidPoints+nWallPoints; i++) {
+	    xPosStar[i] = xPosCurr[i] + dt*xVelStar[i];
+	    yPosStar[i] = yPosCurr[i] + dt*yVelStar[i];
+	}
+	
 	// recalculate the density number, weights, and dist
-	stnRecalc(stnHd, xPosNext, yPosNext);
+	stnRecalc(stnHd, xPosStar, yPosStar);
 
 	// calculate the pressure vector
-	slvCalcPressure(stnHd,    xPosNext, yPosNext,
-			xVelCurr, yVelCurr, pressureNext,
+	slvCalcPressure(stnHd,    xPosStar, yPosStar,
+			xVelStar, yVelStar, pressureNext,
 			dt,       density);
 
 	// calculate correction
-	slvCalcCorrection(stnHd,       pressureNext, xVelCorrect,
+	slvCalcCorrection(stnHd,       pressureNext, xVelStar,
 			  xPosCurr,    density,      dt);
-	slvCalcCorrection(stnHd,       pressureNext, yVelCorrect,
+	slvCalcCorrection(stnHd,       pressureNext, yVelStar,
 			  yPosCurr,    density,      dt);
 	
 	// use correction values to update velocity
 	for (int j = 0; j < stnHd->nPoints; j++) {
-	    xVelNext[j] = xVelNext[j] + xVelCorrect[j];
-	    yVelNext[j] = yVelNext[j] + yVelCorrect[j];
+	    xVelNext[j] = xVelNext[j] + xVelStar[j];
+	    yVelNext[j] = yVelNext[j] + yVelStar[j];
 	    
 	    xPosNext[j] = xPosCurr[j] + dt*xVelNext[j];
 	    yPosNext[j] = yPosCurr[j] + dt*yVelNext[j];
@@ -762,7 +768,7 @@ int main() {
 	mpsOutCrdXY(buffer, xPosNext, yPosNext, stnHd->nPoints);
 
 	// reset for next time step
-	for (int i = 0; i < nPoints; i++) {
+	for (int i = 0; i < nFluidPoints+nWallPoints; i++) {
 	    xPosCurr[i]	    = xPosNext[i];
 	    yPosCurr[i]	    = yPosNext[i];
 	    xVelCurr[i]	    = xVelNext[i];
