@@ -10,7 +10,7 @@ all:: install
 
 include ../make/make.all
 
-DIRS	= sys mem que mps stn slv cxs
+DIRS	= sys mem que cxs stn slv mps
 
 install:: install_dirs
 

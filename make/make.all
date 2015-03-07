@@ -21,7 +21,7 @@ AR      = ar -ru
 MKDIR   = mkdir -p
 
 CC      = gcc
-CCFLAGS = -std=c99 -I ./include/ -g -static -O0 -Wall
+CCFLAGS = -std=c11 -I ./include/ -g -static -O0 -Wall
 LD      = gcc
 LDFLAGS = -L$(LIBDIR)
 LDLIBS  = -lm

@@ -28,6 +28,7 @@
  * Definitions and typedefs
  *******************************************************************************
  */
+#define SYS_H_INCLUDED
 #ifndef true
 #define true (1)
 #endif
@@ -45,5 +46,4 @@ typedef int bool;
                                       printf("\n");                           \
                                   }                                  
 
-// for allocation echos
-// #define MEM_ECHO 1
+

@@ -12,6 +12,8 @@
  * Memory allocation macros
  *******************************************************************************
  */
+#define MEM_ECHO
+
 #define memPrintNew(T,N)        printf("Allocating %ld in %s line %d\n",\
                                        sizeof(T)*(N), __FILE__, __LINE__ )
 #ifdef MEM_ECHO

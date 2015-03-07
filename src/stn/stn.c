@@ -35,9 +35,10 @@ StnHd stnNew(int nFluidPoints, int nWallPoints) {
     stnHd->dNum        = memNew(double, stnHd->nPoints);
     stnHd->diagIndex   = memNew(int, stnHd->nPoints);
 
-    stnHd->d = 2;
+    stnHd->d  = 2;
+    stnHd->n0 = 0;
 
-    for (int i = 0; i < stnHd->nPoints+1; i++) stnHd->dNum[i] = 0;
+    for (int i = 0; i < stnHd->nPoints; i++) stnHd->dNum[i] = 0;
 
     return stnHd;
 }
@@ -60,10 +61,10 @@ void stnPopulate(StnHd  stnHd,  double *xCrd, double *yCrd,
     double	dx;		/* change in x */
     double	dy;		/* change in y */
     double	dist;		/* distance between points */
-    int		nAdjacent;	/* a count of the number of points within the radius for each point */
     int		count;          /* the count of adjacent points so far */
     double      tol;            /* the floating-points error */
     double      totDNum;        /* the total density number */
+    int         tmp;            /* a temporary variable */
 
     tol = 1.e-12;
     totDNum = 0;
@@ -76,13 +77,18 @@ void stnPopulate(StnHd  stnHd,  double *xCrd, double *yCrd,
     for (int i = 0; i < stnHd->nPoints; i++) {
 	stnHd->col[i] = count;
 	for (int j = 0; j < stnHd->nPoints; j++) {
-	    dx = xCrd[i+0] - xCrd[j+0];
-	    dy = xCrd[i+1] - xCrd[j+1];
+	    dx = xCrd[i] - xCrd[j];
+	    dy = yCrd[i] - yCrd[j];
 	    dist = sqrt(dx*dx + dy*dy);
 	    if (dist < radius+tol) {
-		memResize(int, stnHd->row, count, count+1, stnHd->maxAdjacent, 1);
-		memResize(double, stnHd->weights, count, count+1, stnHd->maxAdjacent, 1);
-		memResize(double, stnHd->dist, count, count+1, stnHd->maxAdjacent, 1);
+		tmp = stnHd->maxAdjacent; // don't want maxAdjacent to change yet
+		memResize(int, stnHd->row, count, count+1, tmp, 1);
+		tmp = stnHd->maxAdjacent;
+		memResize(double, stnHd->weights, count, count+1, tmp, 1);
+		tmp = stnHd->maxAdjacent;
+		memResize(double, stnHd->dist, count, count+1, tmp, 1);
+		stnHd->maxAdjacent = tmp;
+
 		stnHd->row[count] = j;
 		stnHd->weights[count] = weight(dist, radius);
 		stnHd->dist[count] = dist;
