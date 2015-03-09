@@ -11,6 +11,8 @@
 from matplotlib import pyplot
 import types
 
+_block = False
+
 def findColor(i):
     colors = ["blue", "green", "red", "cyan", "magenta", "yellow", "black", "white"]
     for elem in i:
@@ -71,7 +73,7 @@ def mpsPlot(data):
             pyplot.scatter(x, y, c=color, s=markersize, marker=marker)
                 
     pyplot.axes().set_aspect('equal')
-    pyplot.show(block = False)
+    pyplot.show(block = _block)
 
 def mpsPlotDensity(data, density):
     pyplot.clf() # clear pyplot
@@ -88,8 +90,31 @@ def mpsPlotDensity(data, density):
     for j in open(density):
         z.append(float(j))
 
-    fig, ax = pyplot.subplots()
-    ax.scatter(x, y, c=z, s=100, edgecolor='')
-    ax.set_aspect('equal')
-    pyplot.show()
+    #fig, ax = pyplot.subplots()
+    #ax.scatter(x, y, c=z, s=80, edgecolor='')
+    pyplot.scatter(x, y, c=z, s=80, edgecolor='')
+    pyplot.axes().set_aspect('equal')
+    pyplot.show(block = _block)
     
+#******************************************************************************
+#* Test
+#******************************************************************************
+
+if __name__ == "__main__":
+    _block	= True
+    wall	= [ "wall_points.dat", "green", "x" ]
+    ghost	= [ "ghost_points.dat", "magenta", "+" ]
+    fluid	= [ "fluid_points.dat", "blue" ]
+    print "initial coordinates"
+    mpsPlot( [ fluid, wall, ghost ] )
+    #raw_input( "Next? " )
+    print "density"
+    mpsPlotDensity("mps.0.out", "density.dat")
+    nSteps	= 2
+    nSteps	= 6
+    for i in range(nSteps):
+	outFile	= "mps.%d.out" % i
+	print outFile
+	mpsPlot( [ [ outFile, "blue" ] , wall, ghost ] )
+	#raw_input( "Next? " )
+

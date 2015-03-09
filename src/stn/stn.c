@@ -19,7 +19,8 @@
 /*******************************************************************************
  * "stnNew": creates a new stn structure
  *******************************************************************************/
-StnHd stnNew(int nFluidPoints, int nWallPoints) {
+StnHd stnNew(int nFluidPoints, int nWallPoints,
+	     double radius, double  beta) {
     StnHd stnHd;
 
     stnHd		= memNew(Stn, 1);
@@ -34,19 +35,28 @@ StnHd stnNew(int nFluidPoints, int nWallPoints) {
     stnHd->dist        = memNew(double, stnHd->maxAdjacent);
     stnHd->dNum        = memNew(double, stnHd->nPoints);
     stnHd->diagIndex   = memNew(int, stnHd->nPoints);
+    stnHd->rhs	       = memNew(double, stnHd->nPoints);
+    stnHd->lhs         = memNew(double, stnHd->maxAdjacent);
+    stnHd->freeSurf    = memNew(int, stnHd->nPoints);
+
+    stnHd->radius = radius;
+    stnHd->beta   = beta;
 
     stnHd->d  = 2;
     stnHd->n0 = 0;
 
-    for (int i = 0; i < stnHd->nPoints; i++) stnHd->dNum[i] = 0;
+    for (int i = 0; i < stnHd->nPoints; i++) {
+	stnHd->dNum[i] = 0;
+	stnHd->freeSurf[i] = 0;
+    }
 
     return stnHd;
 }
 
 /********************************************************************************
- * "weight": calculates the kernel function
+ * "stnWeight": calculates the kernel function
  ********************************************************************************/
-double weight(double dist, double radius) {
+double stnWeight(double dist, double radius) {
     double tol;			/* floating-point error */
 
     tol = 1.e-12;
@@ -56,27 +66,38 @@ double weight(double dist, double radius) {
     else return 0;
 }
 
-void stnPopulate(StnHd  stnHd,  double *xCrd, double *yCrd,
-		 double radius, double  beta) {
+/********************************************************************************
+ * "stnPopulate": populate the STN by searching through the points
+ ********************************************************************************/
+void stnPopulate(StnHd  stnHd,  double *xCrd, double *yCrd ) {
+    double	beta;		/* free surface beta */
+    double	dist;		/* distance between points */
     double	dx;		/* change in x */
     double	dy;		/* change in y */
-    double	dist;		/* distance between points */
-    int		count;          /* the count of adjacent points so far */
+    double	maxDNum;	/* max density number */
+    double	n0Lim;		/* free surface density number */
+    double	radius;		/* search radius */
     double      tol;            /* the floating-points error */
     double      totDNum;        /* the total density number */
+    int		count;          /* the count of adjacent points so far */
+    int		nFluidPoints;	/* no. fluid points */
+    int		nPoints;	/* no. point */
     int         tmp;            /* a temporary variable */
 
-    tol = 1.e-12;
-    totDNum = 0;
-    count = 0;
+    tol			= 1.e-12;
+    totDNum		= 0;
+    count		= 0;
 
-    stnHd->radius = radius;
-    stnHd->beta   = beta;
+    radius		= stnHd->radius;
+    beta		= stnHd->beta;
+    nPoints		= stnHd->nPoints;
+    nFluidPoints	= stnHd->nFluidPoints;
 
     // populate the row and col adjacency list
-    for (int i = 0; i < stnHd->nPoints; i++) {
+    for (int i = 0; i < nPoints; i++) {
 	stnHd->col[i] = count;
-	for (int j = 0; j < stnHd->nPoints; j++) {
+	stnHd->dNum[i] = 0;
+	for (int j = 0; j < nPoints; j++) {
 	    dx = xCrd[i] - xCrd[j];
 	    dy = yCrd[i] - yCrd[j];
 	    dist = sqrt(dx*dx + dy*dy);
@@ -87,23 +108,48 @@ void stnPopulate(StnHd  stnHd,  double *xCrd, double *yCrd,
 		memResize(double, stnHd->weights, count, count+1, tmp, 1);
 		tmp = stnHd->maxAdjacent;
 		memResize(double, stnHd->dist, count, count+1, tmp, 1);
+		tmp = stnHd->maxAdjacent;
+		memResize(double, stnHd->lhs, count, count+1, tmp, 1);
 		stnHd->maxAdjacent = tmp;
 
 		stnHd->row[count] = j;
-		stnHd->weights[count] = weight(dist, radius);
+		stnHd->weights[count] = stnWeight(dist, radius);
 		stnHd->dist[count] = dist;
-		if (i < stnHd->nFluidPoints) // only fluid points
-		    stnHd->dNum[i] += stnHd->weights[count];
+		stnHd->dNum[i] += stnHd->weights[count];
+		if (i == j) stnHd->diagIndex[i] = count;
 		count++;
 	    }
-	    if (i == j)
-		stnHd->diagIndex[i] = count;
 	}
-	if (i < stnHd->nFluidPoints)
-	    totDNum += stnHd->dNum[i];
+	if (i < nFluidPoints) totDNum += stnHd->dNum[i];
     }
-    stnHd->col[stnHd->nPoints] = count;
-    stnHd->n0 = totDNum/stnHd->nFluidPoints;
+    stnHd->col[nPoints] = count;
+    if (stnHd->n0 == 0) {
+	stnHd->n0 = totDNum/nFluidPoints;
+    }
+
+    n0Lim	= stnHd->n0 * stnHd->beta;
+
+    count	= 0;
+    maxDNum	= 0;
+    for ( int i = 0; i < nFluidPoints ; i++ ) {
+	maxDNum	= MAX( maxDNum, stnHd->dNum[i] );
+	stnHd->freeSurf[i]	= 0;
+	if ( stnHd->dNum[i] < n0Lim ) {
+	    stnHd->freeSurf[i] = 1;
+	    count++;
+	}
+    }
+    for ( int i = nFluidPoints ; i < nPoints ; i++ ) {
+	stnHd->freeSurf[i]	= 0;
+    }
+
+    printf( "No. fluid nodes        = %d\n", nFluidPoints ) ;
+    printf( "No. nodes              = %d\n", nPoints ) ;
+    printf( "No. nonzeros           = %d\n", stnHd->col[nPoints] ) ;
+    printf( "Ave. degree            = %g\n", ((double)stnHd->col[nPoints])/nPoints ) ;
+    printf( "No. free-surface nodes = %d\n", count ) ;
+    printf( "Number density         = %g\n", totDNum/nFluidPoints ) ;
+    printf( "Max number density     = %g\n", maxDNum ) ;
 }
 
 /*******************************************************************************
@@ -114,12 +160,17 @@ void stnRecalc(StnHd stnHd, double *xCrd, double *yCrd) {
     double	dx;		/* the x distance between two points */
     double	dy;		/* the y distance between two points */
     double	dist;		/* the distance between two points */
+    int		nFluidPoints;	/* no. fluid points */
+    int		nPoints;	/* no. points */
+
+    nFluidPoints	= stnHd->nFluidPoints;
+    nPoints		= stnHd->nPoints;
 
     // reset density num array
-    for (int i = 0; i < stnHd->nFluidPoints; i++) stnHd->dNum[i] = 0;
+    for (int i = 0; i < nPoints; i++) stnHd->dNum[i] = 0;
 
     // recalculate the weight and dist using same col and row
-    for (int i = 0; i < stnHd->nFluidPoints; i++) {
+    for (int i = 0; i < nPoints; i++) {
 	for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
 	    int j = stnHd->row[k];
 	    if (i == j) continue;
@@ -128,13 +179,17 @@ void stnRecalc(StnHd stnHd, double *xCrd, double *yCrd) {
 	    dy	 = yCrd[i] - yCrd[j];
 	    dist = sqrt(dx*dx + dy*dy);
 
-	    stnHd->weights[k] = weight(dist, stnHd->radius);
+	    stnHd->weights[k] = stnWeight(dist, stnHd->radius);
 	    stnHd->dist[k]    = dist;
 	    stnHd->dNum[i]   += stnHd->weights[k];
 	}
     }
 }
 
+/*******************************************************************************
+ * "stnFree": free the structure
+ *******************************************************************************
+ */
 void stnFree(StnHd stnHd) {
     free(stnHd->col);
     free(stnHd->row);

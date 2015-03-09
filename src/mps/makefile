@@ -11,6 +11,7 @@ all:: install
 include ../../make/make.all
 
 INCS	= $(INCDIR)/sys.h $(INCDIR)/mem.h $(INCDIR)/que.h $(INCDIR)/stn.h $(INCDIR)/slv.h
+LIBS	= $(LIBDIR)/libque.a $(LIBDIR)/libstn.a $(LIBDIR)/libslv.a $(LIBDIR)/libcxs.a
 
 install:: $(INCDIR)/mps.h $(BINDIR)/mps
 
@@ -25,7 +26,7 @@ mpsPoints.o: mps.h mpsPoints.c $(INCS)
 
 MPSOBJS	= mps.o mpsPoints.o
 
-mps: $(MPSOBJS)
+mps: $(MPSOBJS) $(LIBS)
 	$(LD) -o mps $(LDFLAGS) $(MPSOBJS) -lque -lstn -lslv -lcxs $(CXSPARSELIB) $(LDLIBS)
 
 $(BINDIR)/mps: $(BINDIR) mps

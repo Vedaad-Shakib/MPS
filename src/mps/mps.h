@@ -31,12 +31,14 @@ void		mpsFreePoints(MpsPointsHd PointsHd);
  */
 
 void   mpsOutCrd(char *fileName, double *crd, int nPoints, int nDims);
+double mpsVecL2(double *vec, int nDims);
+double mps2VecL2(double *vec1, double *vec2, int nDims);
 int    mpsContainsLine(double *wallSegments, int nWallSegments, double x1, double y1, double x2, double y2);
 double mpsDist(double x1, double y1, double x2, double y2);
 void   mpsGhostCorners(MpsPointsHd cornersHd, double *wallSegments, int nWallSegments,
                        MpsPointsHd ghostPointsHd, int nGhostPoints, double radius);
-void   mpsConstructIntermediatePoints(double *cornerPoints, int nCornerPoints, int nSegs, double **outPoints, 
-                                      int *nOutPoints, int *maxOutPoints, double wallSpacing,
+void   mpsConstructIntermediatePoints(double *cornerPoints, int nCornerPoints, int nSegs, 
+				      MpsPointsHd pointsHd, double wallSpacing,
                                       bool containsStart, bool containsEnd);
 bool   mpsCheckClosure(double *fluidBoundaries, int nFluidBoundaries);
 int    mpsIntegerize(double min, double val, double wallSpacing);
@@ -49,4 +51,7 @@ void   mpsFloodfill(MpsPointsHd fluidPointsHd, double *fluidBoundaries,
                     int nFluidBoundaries, double* wallSegments, int nWallSegments,
                     double initX, double initY, double wallSpacing);
 int    main();
+int    mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd ghostPointsHd,
+		 double  radius, double  wallSpacing, double  beta, double  density, 
+		 double  viscosity, int  nTimeSteps, double  dt);
 

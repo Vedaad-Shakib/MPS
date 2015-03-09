@@ -18,7 +18,7 @@
  ******************************************************************************
  */
 int main(void) {
-    int		nDims;          /* size of the matrix           */
+    int         nDims;          /* size of the matrix           */
     int         nNonzeros;      /* No. non-zeros                */
     int        *col;            /* Adjacency col                */
     int        *row;            /* Adjacency row                */
@@ -28,7 +28,7 @@ int main(void) {
     int         i;              /* a running index              */
     int         j;              /* a running index              */
     int         k;              /* a running index              */
-    int         ok;             /* return code                  */
+    int         errCode;        /* return code                  */
     double      tmp;            /* a temporary real             */
     double      aTmp;           /* a temporary real             */
     double      bTmp;           /* a temporary real             */
@@ -102,10 +102,10 @@ int main(void) {
  * Solve the problem
  *------------------------------------------------------------------------------
  */
-    ok = cxsSolveSym(col, row, mtx, b, x, nDims, nNonzeros);
+    errCode = cxsSolveSym(col, row, mtx, b, x, nDims, nNonzeros);
 
-    if (!ok) {
-        printf("Error from cxsSolveSym()\n");
+    if (errCode) {
+        printf("Error %d from cxsSolveSym()\n",errCode);
     }
 /*------------------------------------------------------------------------------
  * Check the solution
@@ -114,7 +114,7 @@ int main(void) {
     aTmp = 0;
     bTmp = 0;
     for (i = 0; i < nDims; i++) {
-        aTmp += b[i] *	b[i];
+        aTmp += b[i] * b[i];
         tmp   = -b[i];
         for (k = col[i]; k < col[i+1]; k++) {
             j    = row[k];

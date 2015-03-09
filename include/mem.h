@@ -12,18 +12,18 @@
  * Memory allocation macros
  *******************************************************************************
  */
-#define MEM_ECHO
+#define XMEM_ECHO
 
 #define memPrintNew(T,N)        printf("Allocating %ld in %s line %d\n",\
                                        sizeof(T)*(N), __FILE__, __LINE__ )
 #ifdef MEM_ECHO
 #define memNew(T,N)             (memPrintNew(T,N),		        \
-				 (T*) malloc(sizeof(T) * N))
+				 (T*) malloc(sizeof(T) * (N)))
 #define memNewZero(T,N)         (memPrintNew(T,N),			\
-				 (T*) memset(malloc(sizeof(T)*N),0,sizeof(T)*N))
+				 (T*) memset(malloc(sizeof(T)*(N)),0,sizeof(T)*(N)))
 #else
-#define memNew(T,N)             (T*) malloc(sizeof(T) * N)
-#define memNewZero(T,N)         (T*) memset(malloc(sizeof(T)*N),0,sizeof(T)*N)
+#define memNew(T,N)             (T*) malloc(sizeof(T) * (N))
+#define memNewZero(T,N)         (T*) memset(malloc(sizeof(T)*(N)),0,sizeof(T)*(N))
 #endif
 
 #define memResize(TYPE, ARRAY, OLDSIZE, NEWSIZE, MAXSIZE, NDIMS)	\

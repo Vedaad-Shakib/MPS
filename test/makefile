@@ -14,5 +14,5 @@ run::
 	$(BINDIR)/mps
 
 clean::
-	rm -rf *.dat mps.out *.pyc mps.dSYM Log *~
+	rm -rf *.dat mps.*.out *.pyc mps.dSYM Log *~
 

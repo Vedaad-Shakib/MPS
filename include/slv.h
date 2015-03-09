@@ -22,7 +22,8 @@ void   slvCalcPressure(StnHd   stnHd, double *xCrd, double *yCrd,
 double slvCalcDivergence(StnHd   stnHd, double *xCrd, double *yCrd,
 			 double *xVel,  double *yVel, int     i);
 double slvCalcLaplacian(StnHd stnHd, double *vel, int i);
-bool   slvIsSurfacePoint(StnHd stnHd, int i);
 double slvCalcGradient(StnHd stnHd, double *pressure, double *pos, int i);
 void   slvCalcCorrection(StnHd   stnHd, double *pressure, double *velCorrect,
 			 double *pos,   double  density,  double  dt);
+void slvSmoothInit(StnHd stnHd, double *xPos, double *yPos, 
+		   double *xPos2, double *yPos2);

@@ -27,8 +27,8 @@
  ******************************************************************************
  */
 int cxsSolveSym(int    *col,      int    *row, double *mtx,
-		double *b,        double *x,   int     nDims,
-		int     nNonzeros) {
+                double *b,        double *x,   int     nDims,
+                int     nNonzeros) {
     double     *y;              /* pivoted vector                */
     cs          A;              /* matrix in CS structure        */
     css        *S;              /* symbolic factorized matrix    */
@@ -53,7 +53,7 @@ int cxsSolveSym(int    *col,      int    *row, double *mtx,
     S = cs_schol(1, &A);
 
     if (S == NULL) {
-        return(0);
+        return 1;
     }
 /*------------------------------------------------------------------------------
  * Perform numerical (Cholesky) factorization
@@ -63,7 +63,7 @@ int cxsSolveSym(int    *col,      int    *row, double *mtx,
 
     if (N == NULL) {
         cs_sfree(S);
-        return 0;
+        return 2;
     }
 /*------------------------------------------------------------------------------
  * Allocate working memory
@@ -74,7 +74,7 @@ int cxsSolveSym(int    *col,      int    *row, double *mtx,
     if (y == NULL) {
         cs_sfree(S);
         cs_nfree(N);
-        return(0);
+        return 3;
     }
 /*------------------------------------------------------------------------------
  * Solve the matrix
@@ -97,6 +97,5 @@ int cxsSolveSym(int    *col,      int    *row, double *mtx,
  * Return
  *------------------------------------------------------------------------------
  */
-    return 1;
-
+    return 0;
 } 

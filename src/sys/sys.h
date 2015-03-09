@@ -37,6 +37,9 @@
 #define false (0)
 #endif
 
+#define	MAX(A,B)	((A)>(B)?(A):(B))
+#define	MIN(A,B)	((A)<(B)?(A):(B))
+
 typedef int bool;
 
 #define debugArr(NAME,SIZE,NDIMS) printf("Debug array %s: \n", #NAME);        \

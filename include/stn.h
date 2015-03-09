@@ -22,7 +22,10 @@ typedef struct {
     double      *weights;       /* the weights of each adjacent point */
     double      *dist;          /* the distance between each point */
     double      *dNum;          /* the density number of each point */
+    double	*lhs;		/* the LHS matrix for pressure */
+    double	*rhs;		/* the RES vector for pressure */
     int         *diagIndex;     /* the index of the diagonals in the LHS matrix */
+    int		*freeSurf;	/* the free surface flag */
     int          nPoints;       /* the number of points that stnHd contains */
     int          nFluidPoints;  /* the number of fluid points that stnHd contains */
     int          nWallPoints;   /* the number of wall points that stnHd contains */
@@ -39,8 +42,9 @@ typedef Stn* StnHd;
  *******************************************************************************
  */
 
-StnHd stnNew(int nFluidPoints, int nWallPoints);
-void  stnPopulate(StnHd  stnHd,   double *xCrd, double *yCrd,
+StnHd stnNew(int nFluidPoints, int nWallPoints,
 		  double radius,  double  beta);
+double stnWeight(double dist, double radius) ;
+void  stnPopulate(StnHd  stnHd,   double *xCrd, double *yCrd);
 void  stnRecalc(StnHd stnHd, double *xCrd, double *yCrd);
 void  stnFree(StnHd stnHd);
