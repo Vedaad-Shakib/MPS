@@ -845,7 +845,7 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
         if (stepId == 0) mpsOutCrd("density.dat", stnHd->dNum, nFluidPoints, 1);
 
         snprintf(buffer, sizeof(buffer), "mps.dens.%d.out", stepId+1);
-        mpsOutCrd(buffer, stnHd->dNum, nFluidPoints, 1);
+        if(stepId%10==9)mpsOutCrd(buffer, stnHd->dNum, nFluidPoints, 1);
 
 /*---------------------------------------------------------------------------------------
  * Advance the explicit part
@@ -856,6 +856,8 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
 
         l2Norm = mps2VecL2(xVelStar, yVelStar, nFluidPoints);
         printf("Explicit vel. L2 norm  = %g\n", l2Norm);
+
+	if ( l2Norm > 100. ) exit(1);
 
         for (int i = 0; i < nPoints; i++) {
             xPosStar[i] = xPosCurr[i] + LIM(dt*xVelStar[i], limX);
@@ -872,7 +874,7 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
                         dt,       density);
 
         snprintf(buffer, sizeof(buffer), "mps.pres.%d.out", stepId+1);
-        mpsOutCrd(buffer, presNext, nFluidPoints, 1);
+        if(stepId%10==9)mpsOutCrd(buffer, presNext, nFluidPoints, 1);
 
 /*---------------------------------------------------------------------------------------
  * Correct the velocity
@@ -898,15 +900,17 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
         l2Norm = mps2VecL2(xVelNext, yVelNext, nFluidPoints);
         printf( "Implicit vel. L2 norm  = %g\n", l2Norm );
 
+	if ( l2Norm > 100. ) exit(1);
+
 /*---------------------------------------------------------------------------------------
  * Output the data
  *---------------------------------------------------------------------------------------
  */
         snprintf(buffer, sizeof(buffer), "mps.%d.out", stepId+1);
-        mpsOutCrdXY(buffer, xPosNext, yPosNext, nFluidPoints);
+        if(stepId%10==9)mpsOutCrdXY(buffer, xPosNext, yPosNext, nFluidPoints);
 
         snprintf(buffer, sizeof(buffer), "mps.vel.%d.out", stepId+1);
-        mpsOutCrdXY(buffer, xVelCurr, yVelCurr, nFluidPoints);
+        if(stepId%10==9)mpsOutCrdXY(buffer, xVelCurr, yVelCurr, nFluidPoints);
 
 /*---------------------------------------------------------------------------------------
  * Reset the vectors

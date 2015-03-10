@@ -10,6 +10,7 @@
 
 from matplotlib import pyplot
 import types
+import re
 
 _block = False
 
@@ -33,7 +34,8 @@ def findMarker(i):
             return elem.strip()
     return "o"
 
-def mpsPlot(data): 
+def mpsPlot(data):
+    title = ""
     # data[i][0] is fileName
     # options include "line", "point", "circle", "x", "dot", "red", "blue", "green"
     pyplot.clf() # clear pyplot
@@ -56,7 +58,11 @@ def mpsPlot(data):
         markersize = findSize(i)
           # marker type
         marker = findMarker(i)
-        
+
+        m = re.match("mps.([0-9]+).out", i[0])
+        if m:
+	    step = int(m.group(1))
+	    title = "Time = %.4g" % (0.001 * step)
         file = open(i[0], "r")
         x = []
         y = []
@@ -71,9 +77,12 @@ def mpsPlot(data):
             pyplot.scatter(x, y, c=color, s=markersize, marker=marker)
         if not "line" in i and not "point" in i:
             pyplot.scatter(x, y, c=color, s=markersize, marker=marker)
-                
+
+    
+    pyplot.suptitle(title)
     pyplot.axes().set_aspect('equal')
     pyplot.show(block = _block)
+    pyplot.savefig("mps.%d.png"%step)
 
 def mpsPlotDensity(data, density):
     pyplot.clf() # clear pyplot

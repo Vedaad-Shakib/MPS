@@ -27,7 +27,7 @@ double slvCalcGradient(StnHd stnHd, double *vec, double *pos, int i) {
 
     grad = 0;
     minVec = vec[i];
-    if (false) {
+    if (true) {
 	for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
 	    int j = stnHd->row[k];
 	    if (vec[j] < minVec) {
@@ -35,6 +35,7 @@ double slvCalcGradient(StnHd stnHd, double *vec, double *pos, int i) {
 	    }
 	}
     }
+    minVec = (1*minVec + vec[i])/2;
     for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
 	int j = stnHd->row[k];
 	if (i == j) continue;
@@ -176,6 +177,13 @@ void slvCalcPressure(StnHd   stnHd, double *xCrd, double *yCrd,
 		lhs[k]  = -t;
 	    }
 	}
+    }
+
+    double reg = 1.e-8;
+    /* regularize the equation a bit */
+    for (int i = 0; i < nPoints; i++) {
+	int l = diagIndex[i]; // index of diagonals in CCS matrix format
+	lhs[l] *= 1+reg;
     }
 
     // calculate rhs
