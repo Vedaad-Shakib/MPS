@@ -154,7 +154,7 @@ void slvCalcPressure(StnHd   stnHd, double *xCrd, double *yCrd,
 
     alpha1     = 0.8;
     alpha2     = 0.2;
-    delDNumLim = 0.02 *	n0;
+    delDNumLim = 0.02 * n0;
 
     // calculate lhs
     for (int i = 0; i < nNonzeros; i++) lhs[i] = 0;

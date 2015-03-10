@@ -530,7 +530,7 @@ int main() {
     MpsPointsHd  fluidPointsHd; /* fluidPoints structure */
     FILE        *fin;           /* input file */
 
-    fin  = fopen("/Users/farzin/MPS/test/mps.in", "r");
+    fin  = fopen("mps.in", "r");
 
     /*=======================================================================================
      * Input and create wall points and ghost points
@@ -750,7 +750,7 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
             dNum0 += stnWeight(dr, radius);
         }
     }
-    printf("Wall spacing dens. num = %g\n", dNum0);
+    printf("Wall spacing num dens. = %g\n", dNum0);
 
 /*---------------------------------------------------------------------------------------
  * Allocate arrays

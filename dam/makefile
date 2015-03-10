@@ -6,19 +6,14 @@
 #** "makefile": makefile
 #*******************************************************************************          
 
-all:: install
+all:: run
 
-include make/make.all
+include ../make/make.all
 
-DIRS = src dam
+run:: 
+	rm -rf *.dat mps.*.out
+	$(BINDIR)/mps
 
-install:: install_dirs
-
-clean:: clean_dirs
-	rm -rf *~
-	rm -rf Log
-	rm -rf \#*
-	rm -rf *.dat
-	rm -rf *.out
-	rm -rf bin/*.dSYM
+clean::
+	rm -rf *.dat mps.*.out *.pyc mps.dSYM Log *~
 

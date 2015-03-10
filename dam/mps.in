@@ -1,0 +1,36 @@
+0.105
+0.05
+0.001
+1
+0.100001
+0.85
+10000
+3
+5 2 5 0
+5 0 0 0
+0 0 0 2
+4
+0 0 1 0
+1 0 1 1 
+1 1 0 1
+0 1 0 0
+0.5 0.5
+
+
+Format:
+1: radius of influence
+2: spacing between points
+3: delta t
+4: density of fluid
+5: viscosity of fluid
+6: beta constant for calculation of free surface points
+   if densityNumber_i <= beta*averageDensityNumber, i is free surface
+7: number of timesteps the simulation runs for
+8: number of wall segments (nWallSegments)
+9: list of wall segment boundaries
+10: number of fluid boundaries
+11: list of fluid segment boundaries
+12: starting point for floodfill (boundary must be closed)
+
+Note: ghost points (walls) are calculated on the left side of the wall segment vector and
+      fluid points are calculated on the left side of the fluid segment vector
