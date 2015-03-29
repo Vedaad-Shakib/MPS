@@ -9,8 +9,12 @@
 #******************************************************************************
 
 from matplotlib import pyplot
+from time       import sleep
+
 import types
 import re
+import sys
+import os
 
 _block = False
 
@@ -85,6 +89,58 @@ def mpsPlot(data):
     pyplot.show(block = _block)
     if step: pyplot.savefig("mps.%d.png"%step)
 
+# saves data into a png file
+def mpsSave(data, outFile):
+    step = None # whether a mps.*.out is being plotted; if it is, then the plot is also saved into a pngx
+    title = ""
+    # data[i][0] is fileName
+    # options include "line", "point", "circle", "x", "dot", "red", "blue", "green"
+    pyplot.clf() # clear pyplot
+
+    if type(data) == types.StringType:
+	data = [data]
+
+    if type(data) == types.ListType and len(data) > 0 and type(data[0]) == types.StringType:
+        data = [data]
+
+    for i in data:
+        # error handling
+	if type(i) == types.StringType:
+	    i = [i, "point"]
+
+        # parse options
+          # color
+        color = findColor(i)
+          # markersize
+        markersize = findSize(i)
+          # marker type
+        marker = findMarker(i)
+
+        m = re.match("mps.([0-9]+).out", i[0])
+        if m:
+	    step = int(m.group(1))
+	    title = "Time = %.4g" % (0.001 * step)
+        file = open(i[0], "r")
+        x = []
+        y = []
+        for line in file:
+            tmp = [float(j) for j in line.split()]
+            x.append(tmp[0])
+            y.append(tmp[1])
+        
+        if "line" in i:
+            pyplot.plot(x, y, c=color, linewidth=markersize, marker=marker)
+        if "point" in i:
+            pyplot.scatter(x, y, c=color, s=markersize, marker=marker)
+        if not "line" in i and not "point" in i:
+            pyplot.scatter(x, y, c=color, s=markersize, marker=marker)
+
+    
+    pyplot.suptitle(title)
+    pyplot.axes().set_aspect('equal')
+    pyplot.axis((-0.5, 2.5, -0.5, 4.0))
+    pyplot.savefig(outFile)
+
 def mpsPlotDensity(data, density):
     pyplot.clf() # clear pyplot
 
@@ -111,20 +167,21 @@ def mpsPlotDensity(data, density):
 #******************************************************************************
 
 if __name__ == "__main__":
+    inc         = int(sys.argv[1])
+    nSteps      = int(sys.argv[2])
+
     _block	= True
-    wall	= [ "wall_points.dat", "green", "x" ]
-    ghost	= [ "ghost_points.dat", "magenta", "+" ]
-    fluid	= [ "fluid_points.dat", "blue" ]
-    print "initial coordinates"
-    mpsPlot( [ fluid, wall, ghost ] )
-    #raw_input( "Next? " )
-    print "density"
-    mpsPlotDensity("mps.0.out", "density.dat")
-    nSteps	= 2
-    nSteps	= 6
-    for i in range(nSteps):
-	outFile	= "mps.%d.out" % i
-	print outFile
-	mpsPlot( [ [ outFile, "blue" ] , wall, ghost ] )
-	#raw_input( "Next? " )
+    wall	= ["wall_points.dat", "green", "x"]
+    ghost	= ["ghost_points.dat", "magenta", "+"]
+    fluid	= ["fluid_points.dat", "blue"]
+
+    for i in range(0, (nSteps+1)*inc, inc):
+        print "Processing step %s" % i
+        num     = (len(str(nSteps*inc))-len(str(i)))*"0"+str(i) # pad with 0's
+        inFile  = "mps.%s.out" % i
+	outFile	= "mps.%s.png" % num
+	mpsSave([[inFile, "blue"], wall, ghost], outFile)
+    print "Converting to gif"
+    os.system("convert -delay 5 -loop 0 *png solution.gif")
+    os.system("rm -rf *png")
 
