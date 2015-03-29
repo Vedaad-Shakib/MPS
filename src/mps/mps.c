@@ -137,10 +137,12 @@ double mpsDist(double x1, double y1, double x2, double y2) {
  *            ghostPointsHd: a pointer to a struct of ghost point where the points will be stored
  *            nGhostPoints: the number of ghost points needed to be stored 
  *            radius: the radius of influence
+ *            wallSpacing: the spacing between wall points
  *******************************************************************************
  */
-void mpsGhostCorners(MpsPointsHd cornersHd, double *wallSegments, int nWallSegments,
-                     MpsPointsHd ghostPointsHd, int nGhostPoints, double radius) {
+void mpsGhostCorners(MpsPointsHd cornersHd,     double *wallSegments, int    nWallSegments,
+                     MpsPointsHd ghostPointsHd, int     nGhostPoints, double radius,
+                     double      wallSpacing) {
     
     double      *pointCrds;    /* corner coordinates */
     double      *cornerNDirs;   /* corner normal directions */
@@ -203,8 +205,17 @@ void mpsGhostCorners(MpsPointsHd cornersHd, double *wallSegments, int nWallSegme
             nx  = (+ny2 - ny1) / tmp;
             ny  = (-nx2 + nx1) / tmp;
         }
-        ghostPointsHd->pointCrds[2*i+0] = pointCrds[2*i+0] + radius * nx;
-        ghostPointsHd->pointCrds[2*i+1] = pointCrds[2*i+1] + radius * ny;
+
+	// so that the number of ghost segments is even, to have an even spread of points with a lattice shape
+	if ((int)ceil(radius / wallSpacing) % 2 == 1) {
+	    ghostPointsHd->pointCrds[2*i+0] = pointCrds[2*i+0] + (radius+wallSpacing) * nx;
+	    ghostPointsHd->pointCrds[2*i+1] = pointCrds[2*i+1] + (radius+wallSpacing) * ny;
+	} else {
+	    ghostPointsHd->pointCrds[2*i+0] = pointCrds[2*i+0] + radius * nx;
+	    ghostPointsHd->pointCrds[2*i+1] = pointCrds[2*i+1] + radius * ny;
+	}
+	
+	
         ghostPointsHd->nPoints++;
     }
     
@@ -218,7 +229,7 @@ void mpsGhostCorners(MpsPointsHd cornersHd, double *wallSegments, int nWallSegme
  *
  * Parameters:
  *            cornerPoints: a pointer to an array of points that surround the intermediate points
- *            nCornerPoints: the number of points in the array of cornerPoints
+ *            nCornerPoints: the number of points in the array of cornerPoints (nCornerSegments*2)
  *            nSegs: the number of points this segment should have; -1 if calculated from cornerPoints
  *            outPoints: a pointer to a pointer to an array that will store the outputted points
  *            nOutPoints: the number of current points in the outPoints array
@@ -513,6 +524,8 @@ int main() {
     double       tmp1;          /* a temporary real */
     double       tmp2;          /* a temporary real */
     double       tmpArray[4];   /* a temporary array */
+    double       dx;            /* change in x */
+    double       dy;            /* change in y */
     double       dx1;           /* change in x */
     double       dx2;           /* change in x */
     double       dy1;           /* change in y */
@@ -577,8 +590,8 @@ int main() {
     nPoints = mpsGetNPoints(cornersHd);
     
     // initialize the boundary corners of the ghost points
-    mpsGhostCorners(cornersHd, wallSegments, nWallSegments, ghostPointsHd,
-                    nPoints, r);
+    mpsGhostCorners(cornersHd,  wallSegments, nWallSegments, ghostPointsHd,
+                    nPoints,    r,            wallSpacing);
     
     // remove later
     mpsOutCrd("ghost_corners.dat", ghostPointsHd->pointCrds, nPoints, 2);
@@ -610,23 +623,47 @@ int main() {
                        ghostPointsHd->pointCrds[2*i+0], ghostPointsHd->pointCrds[2*i+1]);
         tmp2 = mpsDist(cornersHd->pointCrds[2*(i+1)+0], cornersHd->pointCrds[2*(i+1)+1],
                        ghostPointsHd->pointCrds[2*(i+1)+0], ghostPointsHd->pointCrds[2*(i+1)+1]);
-        nSegs = ceil(r / wallSpacing);
+	// the number of ghost segments needs to be even to have a even spread of points with a lattice shape
+	// divide by sqrt(2) so the distance between layers is wallSpacing/sqrt(2) so that the distance between
+	// the points in the hexagonal lattice is the same
+        nSegs = (int)ceil(r / wallSpacing) % 2 == 1 ? ceil(r / wallSpacing)+1 : ceil(r / wallSpacing);
         dx1 = (ghostPointsHd->pointCrds[2*i+0] - cornersHd->pointCrds[2*i+0]) / nSegs;
         dy1 = (ghostPointsHd->pointCrds[2*i+1] - cornersHd->pointCrds[2*i+1]) / nSegs;
         dx2 = (ghostPointsHd->pointCrds[2*(i+1)+0] - cornersHd->pointCrds[2*(i+1)+0]) / nSegs;
         dy2 = (ghostPointsHd->pointCrds[2*(i+1)+1] - cornersHd->pointCrds[2*(i+1)+1]) / nSegs;
-        
+
+	printf("Wall Segment %d:\n", i);
+	
+	printf("\tdx1:       %lf\n", dx1*nSegs);
+	printf("\tdx1/nSegs: %lf\n", dx1);
+	
+	printf("\tdy1:       %lf\n", dy1*nSegs);
+	printf("\tdy1/nSegs: %lf\n", dy1);
+	
+	printf("\tdx2:       %lf\n", dx2*nSegs);
+	printf("\tdx2/nSegs: %lf\n", dx2);
+	
+	printf("\tdy2:       %lf\n", dy2*nSegs);
+	printf("\tdy2/nSegs: %lf\n", dy2);
+	
         // for each two corner and ghostPoint pairs, there are nSegs lines between them which comprise the ghost points
+	// indent alternating segments so they form a stronger lattice instead of an aligned square pattern
         for (int j = 1; j < nSegs+1; j++) {
-            tmpArray[0] = cornersHd->pointCrds[2*i+0] + j*dx1;
-            tmpArray[1] = cornersHd->pointCrds[2*i+1] + j*dy1;
-            tmpArray[2] = cornersHd->pointCrds[2*(i+1)+0] + j*dx2; // extend by dx of pointCrds
-            tmpArray[3] = cornersHd->pointCrds[2*(i+1)+1] + j*dy2;
-            
-            mpsConstructIntermediatePoints(tmpArray, 2,
-                                           mpsDist(cornersHd->pointCrds[2*i+0], cornersHd->pointCrds[2*i+1],
-                                                   cornersHd->pointCrds[2*(i+1)+0], cornersHd->pointCrds[2*(i+1)+1]) / wallSpacing,
-                                           ghostPointsHd, wallSpacing, true, true);
+	    nPoints = mpsDist(cornersHd->pointCrds[2*i+0], cornersHd->pointCrds[2*i+1],
+			      cornersHd->pointCrds[2*(i+1)+0], cornersHd->pointCrds[2*(i+1)+1]) / wallSpacing;
+	    dx = (cornersHd->pointCrds[2*(i+1)+0]+j*dx2) - (cornersHd->pointCrds[2*i+0]+j*dx1); // distance between the startpoint and endpoint of current constructed segmnet
+	    dy = (cornersHd->pointCrds[2*(i+1)+1]+j*dy2) - (cornersHd->pointCrds[2*i+1]+j*dy1); 
+	    
+            tmpArray[0] = cornersHd->pointCrds[2*i+0] + j*dx1 + (j%2==1 ? dx/(2*nPoints) : 0); // ternary operator gives offset that creates the lattice
+            tmpArray[1] = cornersHd->pointCrds[2*i+1] + j*dy1 + (j%2==1 ? dy/(2*nPoints) : 0);
+            tmpArray[2] = cornersHd->pointCrds[2*(i+1)+0] + j*dx2 + (j%2==1 ? dx/(2*nPoints) : 0);
+            tmpArray[3] = cornersHd->pointCrds[2*(i+1)+1] + j*dy2 + (j%2==1 ? dy/(2*nPoints) : 0);
+
+	    printf("for j = %d:\n", j);
+	    printf("\t%lf, %lf -- %lf, %lf\n", tmpArray[0], tmpArray[1], tmpArray[2], tmpArray[3]);
+
+	    mpsConstructIntermediatePoints(tmpArray,      2,           nPoints,
+					   ghostPointsHd, wallSpacing, true,    j%2==0);
         }
     }
     
@@ -657,7 +694,7 @@ int main() {
     if (!mpsCheckClosure(fluidBoundaries, nFluidBoundaries)) {
         printf("The given fluid boundaries are not closed.");
         exit(0);
-    } 
+    }
 
     fscanf(fin, "%lf %lf", &x0, &y0);
 
@@ -855,9 +892,9 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
         slvCalcExplicitVelocity(stnHd, yVelCurr, yVelStar, viscosity, dt, -9.8);
 
         l2Norm = mps2VecL2(xVelStar, yVelStar, nFluidPoints);
-        printf("Explicit vel. L2 norm  = %g\n", l2Norm);
+        // printf("Explicit vel. L2 norm  = %g\n", l2Norm);
 
-	if ( l2Norm > 100. ) exit(1);
+	if (l2Norm > 100.) exit(1);
 
         for (int i = 0; i < nPoints; i++) {
             xPosStar[i] = xPosCurr[i] + LIM(dt*xVelStar[i], limX);
@@ -898,9 +935,9 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
         }
 
         l2Norm = mps2VecL2(xVelNext, yVelNext, nFluidPoints);
-        printf( "Implicit vel. L2 norm  = %g\n", l2Norm );
+        // printf("Implicit vel. L2 norm  = %g\n", l2Norm);
 
-	if ( l2Norm > 100. ) exit(1);
+	if (l2Norm > 100.) exit(1);
 
 /*---------------------------------------------------------------------------------------
  * Output the data

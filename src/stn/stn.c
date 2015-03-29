@@ -143,13 +143,13 @@ void stnPopulate(StnHd  stnHd,  double *xCrd, double *yCrd ) {
 	stnHd->freeSurf[i]	= 0;
     }
 
-    printf( "No. fluid nodes        = %d\n", nFluidPoints ) ;
-    printf( "No. nodes              = %d\n", nPoints ) ;
-    printf( "No. nonzeros           = %d\n", stnHd->col[nPoints] ) ;
-    printf( "Ave. degree            = %g\n", ((double)stnHd->col[nPoints])/nPoints ) ;
-    printf( "No. free-surface nodes = %d\n", count ) ;
-    printf( "Number density         = %g\n", totDNum/nFluidPoints ) ;
-    printf( "Max number density     = %g\n", maxDNum ) ;
+    /*printf("No. fluid nodes        = %d\n", nFluidPoints);
+    printf("No. nodes              = %d\n", nPoints);
+    printf("No. nonzeros           = %d\n", stnHd->col[nPoints]);
+    printf("Ave. degree            = %g\n", ((double)stnHd->col[nPoints])/nPoints);
+    printf("No. free-surface nodes = %d\n", count);
+    printf("Number density         = %g\n", totDNum/nFluidPoints);
+    printf("Max number density     = %g\n", maxDNum);*/
 }
 
 /*******************************************************************************

@@ -35,6 +35,7 @@ def findMarker(i):
     return "o"
 
 def mpsPlot(data):
+    step = None # whether a mps.*.out is being plotted; if it is, then the plot is also saved into a pngx
     title = ""
     # data[i][0] is fileName
     # options include "line", "point", "circle", "x", "dot", "red", "blue", "green"
@@ -82,7 +83,7 @@ def mpsPlot(data):
     pyplot.suptitle(title)
     pyplot.axes().set_aspect('equal')
     pyplot.show(block = _block)
-    pyplot.savefig("mps.%d.png"%step)
+    if step: pyplot.savefig("mps.%d.png"%step)
 
 def mpsPlotDensity(data, density):
     pyplot.clf() # clear pyplot
