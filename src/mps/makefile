@@ -24,7 +24,10 @@ mps.o: mps.h mps.c $(INCS)
 mpsPoints.o: mps.h mpsPoints.c $(INCS)
 	$(CC) -c $(CCFLAGS) -I$(INCDIR) mpsPoints.c
 
-MPSOBJS	= mps.o mpsPoints.o
+mpsRead.o: mps.h mpsRead.c $(INCS)
+	$(CC) -c $(CCFLAGS) -I$(INCDIR) mpsRead.c
+
+MPSOBJS	= mps.o mpsPoints.o mpsRead.o
 
 mps: $(MPSOBJS) $(LIBS)
 	$(LD) -o mps $(LDFLAGS) $(MPSOBJS) -lque -lstn -lslv -lcxs $(CXSPARSELIB) $(LDLIBS)

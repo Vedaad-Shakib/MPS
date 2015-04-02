@@ -20,6 +20,21 @@ typedef struct _MpsPoints {
 
 typedef MpsPoints* MpsPointsHd;
 
+typedef struct _Mps {
+    MpsPointsHd	fluidPointsHd;	/* the struct of fluid points */
+    MpsPointsHd	wallPointsHd;	/* the struct of wall points */
+    MpsPointsHd	ghostPointsHd;	/* the struct of ghost points */
+    double	radius;		/* the radius of influence */
+    double	wallSpacing;	/* the spacing between points */
+    double	beta;		/* the free-surface constant beta */
+    double	density;	/* the density of the fluid */
+    double	viscosity;	/* the viscosity of the fluid */
+    double	nTimeSteps;	/* the number of time steps for which the simulation runs */
+    double	dt;		/* the time delta between each timestep */
+} Mps;
+
+typedef Mps*     MpsHd;
+
 MpsPointsHd	mpsNewPoints();
 int		mpsGetPointId(MpsPointsHd pointsHd, double x, double y);
 void		mpsFreePoints(MpsPointsHd PointsHd);
@@ -56,8 +71,7 @@ bool   mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
 void   mpsFloodfill(MpsPointsHd fluidPointsHd,    double *fluidBoundaries, int    nFluidBoundaries,
                     double     *wallSegments,     int     nWallSegments,   double initX,
 		    double      initY,            double  wallSpacing);
+MpsHd  mpsRead();
 int    main();
-int    mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd ghostPointsHd,
-		 double      radius,        double      wallSpacing,  double      beta,          double  density, 
-		 double      viscosity,     int         nTimeSteps,   double      dt);
+int    mpsDriver(MpsHd mpsHd);
 
