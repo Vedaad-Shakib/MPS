@@ -29,7 +29,7 @@ typedef struct _Mps {
     double	beta;		/* the free-surface constant beta */
     double	density;	/* the density of the fluid */
     double	viscosity;	/* the viscosity of the fluid */
-    double	nTimeSteps;	/* the number of time steps for which the simulation runs */
+    int 	nTimeSteps;	/* the number of time steps for which the simulation runs */
     double	dt;		/* the time delta between each timestep */
 } Mps;
 
@@ -46,6 +46,8 @@ void		mpsFreePoints(MpsPointsHd PointsHd);
  */
 
 void   mpsOutCrd(char *fileName, double *crd, int nPoints, int nDims);
+void mpsOutCrdXY(char *fileName, double *xCrd, double *yCrd,
+                 int   nPoints);
 double mpsVecL2(double *vec, int nDims);
 double mps2VecL2(double *vec1, double *vec2, int nDims);
 int    mpsContainsLine(double *wallSegments, int nWallSegments, double x1, double y1, double x2, double y2);

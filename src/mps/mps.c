@@ -18,87 +18,12 @@
 #include "stn.h"
 #include "slv.h"
 
-/*******************************************************************************
- * "mpsOutCrd": output the coordinates into a file
- *
- * Parameters:
- *            fileName: the fileName of the file to be written
- *            crd: the list of coordinates to be outputted
- *            nPoints: the length of crd
- *            nDims: the number of dimensions to the data
- *******************************************************************************
- */
-void mpsOutCrd(char *fileName, double *crd, int nPoints,
-               int   nDims) {
-    FILE *fout;
-    
-    fout = fopen(fileName, "w");
-    for (int i = 0; i < nPoints; i++) {
-        for (int j = 0; j < nDims; j++) {
-            fprintf(fout, "%.16e ", crd[nDims*i+j]);
-        }
-        fprintf(fout, "\n");
-    }
-    fclose(fout);
-} 
-
-/*******************************************************************************
- * "mpsOutCrdXY": output the coordinates into a file given two arrays of x, y
- *
- * Parameters:
- *            fileName: the fileName of the file to be written
- *            xCrd: the list of x coordinates to be outputted
- *            yCrd: the list of y coordinates to be outputted
- *            nPoints: the length of crd
- *******************************************************************************
- */
-void mpsOutCrdXY(char *fileName, double *xCrd, double *yCrd,
-                 int   nPoints) {
-    FILE *fout;
-    
-    fout = fopen(fileName, "w");
-    for (int i = 0; i < nPoints; i++) {
-        fprintf(fout, "%.16e ", xCrd[i]);
-        fprintf(fout, "%.16e ", yCrd[i]);
-        fprintf(fout, "\n");
-    }
-    fclose(fout);
-} 
-
-/*******************************************************************************
- * "mpsVecL2": compute the L2 of a vector, for printing
- *******************************************************************************
- */
-double mpsVecL2(double *vec, int nDims) {
-    double        l2Norm;                        /* L2 norm */
-
-    l2Norm = 0;
-    for (int i = 0; i < nDims; i++) {
-        l2Norm += vec[i] * vec[i];
-    }
-    return sqrt(l2Norm/nDims) ;
-} 
-
-/*******************************************************************************
- * "mps2VecL2": compute the L2 of a vector, for printing
- *******************************************************************************
- */
-double mps2VecL2(double *vec1, double *vec2, int nDims) {
-    double        l2Norm;                        /* L2 norm */
-
-    l2Norm = 0;
-    for (int i = 0; i < nDims; i++) {
-        l2Norm += vec1[i] * vec1[i] + vec2[i] * vec2[i];
-    }
-    return sqrt(l2Norm/nDims) ;
-} 
 
 /*******************************************************************************
  * "main": main function
  *******************************************************************************
  */
 int main() {
-
     MpsHd mpsHd;
 
     /*=======================================================================================
@@ -115,13 +40,7 @@ int main() {
 
      mpsDriver(mpsHd);
 
-    /*=======================================================================================
-     * End
-     *=======================================================================================
-     */
-
      return 0;
-
 } 
 
 /*******************************************************************************
