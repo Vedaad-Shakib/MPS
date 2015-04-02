@@ -69,7 +69,7 @@ double stnWeight(double dist, double radius) {
 /********************************************************************************
  * "stnPopulate": populate the STN by searching through the points
  ********************************************************************************/
-void stnPopulate(StnHd  stnHd,  double *xCrd, double *yCrd ) {
+void stnPopulate(StnHd  stnHd,  double *xCrd, double *yCrd) {
     double	beta;		/* free surface beta */
     double	dist;		/* distance between points */
     double	dx;		/* change in x */
@@ -120,6 +120,7 @@ void stnPopulate(StnHd  stnHd,  double *xCrd, double *yCrd ) {
 		count++;
 	    }
 	}
+	//printf("%d\n", count-stnHd->col[i]);
 	if (i < nFluidPoints) totDNum += stnHd->dNum[i];
     }
     stnHd->col[nPoints] = count;
@@ -127,20 +128,21 @@ void stnPopulate(StnHd  stnHd,  double *xCrd, double *yCrd ) {
 	stnHd->n0 = totDNum/nFluidPoints;
     }
 
-    n0Lim	= stnHd->n0 * stnHd->beta;
+    n0Lim = stnHd->n0 * stnHd->beta;
 
-    count	= 0;
-    maxDNum	= 0;
-    for ( int i = 0; i < nFluidPoints ; i++ ) {
-	maxDNum	= MAX( maxDNum, stnHd->dNum[i] );
-	stnHd->freeSurf[i]	= 0;
-	if ( stnHd->dNum[i] < n0Lim ) {
+    count   = 0;
+    maxDNum = 0;
+    
+    for (int i = 0; i < nFluidPoints; i++) {
+	maxDNum	= MAX(maxDNum, stnHd->dNum[i]);
+	stnHd->freeSurf[i] = 0;
+	if (stnHd->dNum[i] < n0Lim) {
 	    stnHd->freeSurf[i] = 1;
 	    count++;
 	}
     }
-    for ( int i = nFluidPoints ; i < nPoints ; i++ ) {
-	stnHd->freeSurf[i]	= 0;
+    for (int i = nFluidPoints; i < nPoints; i++) {
+	stnHd->freeSurf[i] = 0;
     }
 
     /*printf("No. fluid nodes        = %d\n", nFluidPoints);

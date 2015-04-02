@@ -53,7 +53,8 @@ int cxsSolveSym(int    *col,      int    *row, double *mtx,
     S = cs_schol(1, &A);
 
     if (S == NULL) {
-        return 1;
+	printf("Error performing symbolic factorization on pressure poisson matrix");
+        return 14;
     }
 /*------------------------------------------------------------------------------
  * Perform numerical (Cholesky) factorization
@@ -63,6 +64,7 @@ int cxsSolveSym(int    *col,      int    *row, double *mtx,
 
     if (N == NULL) {
         cs_sfree(S);
+	printf("Error performing Cholesky factorization on pressure poisson matrix");
         return 2;
     }
 /*------------------------------------------------------------------------------
@@ -74,6 +76,7 @@ int cxsSolveSym(int    *col,      int    *row, double *mtx,
     if (y == NULL) {
         cs_sfree(S);
         cs_nfree(N);
+	printf("Error allocating memory to pressure poisson solution");
         return 3;
     }
 /*------------------------------------------------------------------------------

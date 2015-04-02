@@ -8,7 +8,7 @@
 #*
 #******************************************************************************
 
-from matplotlib import pyplot
+from matplotlib import pyplot as plt
 from time       import sleep
 
 import types
@@ -43,7 +43,7 @@ def mpsPlot(data):
     title = ""
     # data[i][0] is fileName
     # options include "line", "point", "circle", "x", "dot", "red", "blue", "green"
-    pyplot.clf() # clear pyplot
+    plt.clf() # clear plt
 
     if type(data) == types.StringType:
 	data = [data]
@@ -77,17 +77,16 @@ def mpsPlot(data):
             y.append(tmp[1])
         
         if "line" in i:
-            pyplot.plot(x, y, c=color, linewidth=markersize, marker=marker)
+            plt.plot(x, y, c=color, linewidth=markersize, marker=marker)
         if "point" in i:
-            pyplot.scatter(x, y, c=color, s=markersize, marker=marker)
+            plt.scatter(x, y, c=color, s=markersize, marker=marker)
         if not "line" in i and not "point" in i:
-            pyplot.scatter(x, y, c=color, s=markersize, marker=marker)
-
+            plt.scatter(x, y, c=color, s=markersize, marker=marker)
     
-    pyplot.suptitle(title)
-    pyplot.axes().set_aspect('equal')
-    pyplot.show(block = _block)
-    if step: pyplot.savefig("mps.%d.png"%step)
+    plt.suptitle(title)
+    plt.axes().set_aspect('equal')
+    plt.show(block = _block)
+    if step: plt.savefig("mps.%d.png"%step)
 
 # saves data into a png file
 def mpsSave(data, outFile):
@@ -95,7 +94,7 @@ def mpsSave(data, outFile):
     title = ""
     # data[i][0] is fileName
     # options include "line", "point", "circle", "x", "dot", "red", "blue", "green"
-    pyplot.clf() # clear pyplot
+    plt.clf() # clear plt
 
     if type(data) == types.StringType:
 	data = [data]
@@ -129,20 +128,20 @@ def mpsSave(data, outFile):
             y.append(tmp[1])
         
         if "line" in i:
-            pyplot.plot(x, y, c=color, linewidth=markersize, marker=marker)
+            plt.plot(x, y, c=color, linewidth=markersize, marker=marker)
         if "point" in i:
-            pyplot.scatter(x, y, c=color, s=markersize, marker=marker)
+            plt.scatter(x, y, c=color, s=markersize, marker=marker)
         if not "line" in i and not "point" in i:
-            pyplot.scatter(x, y, c=color, s=markersize, marker=marker)
+            plt.scatter(x, y, c=color, s=markersize, marker=marker)
 
     
-    pyplot.suptitle(title)
-    pyplot.axes().set_aspect('equal')
-    pyplot.axis((-0.5, 2.5, -0.5, 4.0))
-    pyplot.savefig(outFile)
+    plt.suptitle(title)
+    plt.axes().set_aspect('equal')
+    plt.axis((-0.5, 4.5, -0.5, 4.0))
+    plt.savefig(outFile)
 
 def mpsPlotDensity(data, density):
-    pyplot.clf() # clear pyplot
+    plt.clf() # clear plt
 
     x = []
     y = []
@@ -156,11 +155,11 @@ def mpsPlotDensity(data, density):
     for j in open(density):
         z.append(float(j))
 
-    #fig, ax = pyplot.subplots()
+    #fig, ax = plt.subplots()
     #ax.scatter(x, y, c=z, s=80, edgecolor='')
-    pyplot.scatter(x, y, c=z, s=80, edgecolor='')
-    pyplot.axes().set_aspect('equal')
-    pyplot.show(block = _block)
+    plt.scatter(x, y, c=z, s=80, edgecolor='')
+    plt.axes().set_aspect('equal')
+    plt.show(block = _block)
     
 #******************************************************************************
 #* Test

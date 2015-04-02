@@ -43,9 +43,14 @@ void   mpsConstructIntermediatePoints(double     *cornerPoints, int    nCornerPo
                                       bool containsStart, bool containsEnd);
 bool   mpsCheckClosure(double *fluidBoundaries, int nFluidBoundaries);
 int    mpsIntegerize(double min, double val, double wallSpacing);
-bool   mpsCrossesFluidBoundaries(double *fluidBoundaries, int nFluidBoundaries,
-                                 double *wallSegments,    int nWallSegments,
-                                 double x1, double y1, double x2, double y2);
+bool   mpsCrossesFluidBoundary(double *fluidBoundaries, int    nFluidBoundaries, double x1,
+			       double  y1,              double x2,               double y2);
+bool   mpsCrossesWallBoundary(double *wallSegments, int    nWallSegments, double x1, 
+			      double  y1,           double x2,            double y2);
+bool   mpsCrossesBoundary(double *fluidBoundaries, int nFluidBoundaries,
+			  double *wallSegments,    int nWallSegments,
+			  double  x1,              double y1,
+			  double  x2,              double y2);
 bool   mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
                          double b1x, double b1y, double b2x, double b2y);
 void   mpsFloodfill(MpsPointsHd fluidPointsHd,    double *fluidBoundaries, int    nFluidBoundaries,

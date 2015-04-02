@@ -307,7 +307,8 @@ bool mpsCheckClosure(double *fluidBoundaries, int nFluidBoundaries) {
 }
 
 /*******************************************************************************
- * "mpsIntegerize": converts a double coordinate point into an integer value
+ * "mpsYIntegerize": converts a double Y coordinate point into an integer value,
+ *                  assuming that there is a y coordinate every wallSpacing/(2/sqrt(3)) units
  *
  * Parameters:
  *            min: the minimum coordinate
@@ -315,12 +316,78 @@ bool mpsCheckClosure(double *fluidBoundaries, int nFluidBoundaries) {
  *            wallSpacing: the wall spacing
  *******************************************************************************
  */
-int mpsIntegerize(double min, double val, double wallSpacing) {
-    return (int) round((val-min)/wallSpacing);
+int mpsYIntegerize(double min, double val, double wallSpacing) {
+    return (int) round((2/sqrt(3))*(val-min)/wallSpacing);
 }
 
 /*******************************************************************************
- * "mpsCrossesFluidBoundary": checks whether a line segment crosses any fluid boundaries or wall segments
+ * "mpsXIntegerize": converts a double X coordinate point into an integer value,
+ *                   assuming that there is an x coordinate every wallSpacing/2 units
+ *
+ * Parameters:
+ *            min: the minimum coordinate
+ *            val: the value to integerize
+ *            wallSpacing: the wall spacing
+ *******************************************************************************
+ */
+int mpsXIntegerize(double min, double val, double wallSpacing) {
+    return (int) round(2*(val-min)/wallSpacing);
+}
+
+/*******************************************************************************
+ * "mpsCrossesFluidBoundary": checks whether a line segment crosses any fluid boundaries
+ *
+ * Parameters:
+ *            fluidBoundaries: the list of fluid boundaries
+ *            nFluidBoundaries: the number of fluid boundaries
+ *            x1: the x coordinate of the first point of the line
+ *            y1: the y coordinate of the first point of the line
+ *            x2: the x coordinate of the second point of the line
+ *            y2: the y coordinate of the second point of the line
+ *            intersect: if true, shared endpoints of lines don't count as intersecting
+ *******************************************************************************
+ */
+bool mpsCrossesFluidBoundary(double *fluidBoundaries, int    nFluidBoundaries, double x1,
+			     double  y1,              double x2,               double y2) {
+    for (int i = 0; i < nFluidBoundaries; i++) {
+        if (mpsLinesIntersect(x1, y1, x2, y2,
+                              fluidBoundaries[4*i+0], fluidBoundaries[4*i+1],
+                              fluidBoundaries[4*i+2], fluidBoundaries[4*i+3])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/*******************************************************************************
+ * "mpsCrossesWallBoundary": checks whether a line segment crosses any wall segments
+ *
+ * Parameters:
+ *            wallSegments: the list of wall segments
+ *            nWallSegments: the number of wall segments
+ *            x1: the x coordinate of the first point of the line
+ *            y1: the y coordinate of the first point of the line
+ *            x2: the x coordinate of the second point of the line
+ *            y2: the y coordinate of the second point of the line
+ *            intersect: if true, shared endpoints of lines don't count as intersecting
+ *******************************************************************************
+ */
+bool mpsCrossesWallBoundary(double *wallSegments, int    nWallSegments, double x1, 
+			    double  y1,           double x2,            double y2) {
+    for (int i = 0; i < nWallSegments; i++) {
+        if (mpsLinesIntersect(x1, y1, x2, y2,
+                              wallSegments[4*i+0], wallSegments[4*i+1],
+                              wallSegments[4*i+2], wallSegments[4*i+3])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/*******************************************************************************
+ * "mpsCrossesBoundary": checks whether a line segment crosses any fluid boundaries or wall segments
  *
  * Parameters:
  *            fluidBoundaries: the list of fluid boundaries
@@ -331,28 +398,14 @@ int mpsIntegerize(double min, double val, double wallSpacing) {
  *            y1: the y coordinate of the first point of the line
  *            x2: the x coordinate of the second point of the line
  *            y2: the y coordinate of the second point of the line
+ *            intersect: if true, shared endpoints of lines don't count as intersecting
  *******************************************************************************
  */
-bool mpsCrossesFluidBoundary(double *fluidBoundaries, int nFluidBoundaries,
-                             double *wallSegments, int nWallSegments,
-                             double x1, double y1, double x2, double y2) {
-    for (int i = 0; i < nFluidBoundaries; i++) {
-        if (mpsLinesIntersect(x1, y1, x2, y2,
-                              fluidBoundaries[4*i+0], fluidBoundaries[4*i+1],
-                              fluidBoundaries[4*i+2], fluidBoundaries[4*i+3])) {
-            return true;
-        }
-    }
-
-    for (int i = 0; i < nWallSegments; i++) {
-        if (mpsLinesIntersect(x1, y1, x2, y2,
-                              wallSegments[4*i+0], wallSegments[4*i+1],
-                              wallSegments[4*i+2], wallSegments[4*i+3])) {
-            return true;
-        }
-    }
-
-    return false;
+bool mpsCrossesBoundary(double *fluidBoundaries, int nFluidBoundaries,
+			double *wallSegments, int nWallSegments,
+			double x1, double y1, double x2, double y2) {
+    return (mpsCrossesWallBoundary( wallSegments,    nWallSegments,    x1, y1, x2, y2) ||
+	    mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, x1, y1, x2, y2));
 }
 
 /*******************************************************************************
@@ -367,6 +420,7 @@ bool mpsCrossesFluidBoundary(double *fluidBoundaries, int nFluidBoundaries,
  *            b1y: the y coordinate of the first point of the second line
  *            b2x: the x coordinate of the second point of the second line
  *            b2y: the y coordinate of the second point of the second line
+ *            intersect: if true, shared endpoints of lines don't count as intersecting
  *******************************************************************************
  */
 bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
@@ -394,11 +448,12 @@ bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
     
     // if determinant is 0, they're parallel (and the rest will return error)
     if (fabs(det) <= tol * (fabs(dax)+fabs(day))*(fabs(dbx)+fabs(dby))) {
-        return(false);
+        return false;
     }
     
     alpha = (+dby*dbax-dbx*dbay)/det;
     beta  = (-day*dbax+dax*dbay)/det;
+
     return (alpha > -tol && alpha < 1+tol && beta > -tol && beta < 1+tol);
 }
 
@@ -414,13 +469,13 @@ bool mpsLinesIntersect(double a1x, double a1y, double a2x, double a2y,
  *            wallSpacing: the mpsDistance between the points
  *******************************************************************************
  */
-void mpsFloodfill(MpsPointsHd fluidPointsHd, double *fluidBoundaries,
-                  int nFluidBoundaries, double* wallSegments, int nWallSegments,
-                  double initX, double initY, double wallSpacing) {
+void mpsFloodfill(MpsPointsHd fluidPointsHd,    double *fluidBoundaries,
+                  int         nFluidBoundaries, double *wallSegments,    int    nWallSegments,
+                  double      origX,            double  origY,           double wallSpacing) {
     double       x;             /* the x coordinate */
     double       y;             /* the y coordinate */
-    int          xInt;          /* an mpsIntegerized x */
-    int          yInt;          /* an mpsIntegerized y */
+    int          xInt;          /* an integerized x */
+    int          yInt;          /* an integerized y */
     double       xMin;          /* the minimum x */
     double       xMax;          /* the maximum x */
     double       yMin;          /* the minimum y */
@@ -428,7 +483,19 @@ void mpsFloodfill(MpsPointsHd fluidPointsHd, double *fluidBoundaries,
     bool        *visited;       /* a 2D array of visited points */
     int          xDim;          /* the number of x dimensions in the visited array */
     int          yDim;          /* the number of y dimensions in the visited array */
+    double       L;             /* the length of the largest dimension */
+    double       tmpX;          /* temporary variable in x dimension */
+    double       tmpY;          /* temporary variable in y dimension */
+    double       initX;         /* the starting x */
+    double       initY;         /* the starting y */
+    double       epsilon;       /* a small constant */
     QueHd        queHd;         /* queue to store points needed to be visited */
+
+    epsilon = 1.e-8;
+    
+    // set the starting x and y coordinates for floodfill
+    initX = origX;
+    initY = origY;
     
     // get the minimum and maximum x and y coordinates
     xMin = fluidBoundaries[0];
@@ -441,16 +508,109 @@ void mpsFloodfill(MpsPointsHd fluidPointsHd, double *fluidBoundaries,
         if (fluidBoundaries[4*i+0] > xMax) xMax = fluidBoundaries[4*i+0];
         if (fluidBoundaries[4*i+1] < yMin) yMin = fluidBoundaries[4*i+1];
         if (fluidBoundaries[4*i+1] > yMax) yMax = fluidBoundaries[4*i+1];
-        
+
         if (fluidBoundaries[4*i+2] < xMin) xMin = fluidBoundaries[4*i+2];
         if (fluidBoundaries[4*i+2] > xMax) xMax = fluidBoundaries[4*i+2];
         if (fluidBoundaries[4*i+3] < yMin) yMin = fluidBoundaries[4*i+3];
         if (fluidBoundaries[4*i+3] > yMax) yMax = fluidBoundaries[4*i+3];
     }
+
+    L = fmax(xMax-xMin, yMax-yMin);
     
+    /*for (int i = 0; i < nFluidBoundaries; i++) {
+	// adjust the fluid boundary corner point by a slight amount so if the endpoints intersect, the method will think that the lines do not cross
+	if (initX > fluidBoundaries[4*i+0])
+	    tmpX = fluidBoundaries[4*i+0] + L*epsilon;
+	else if (initX < fluidBoundaries[4*i+0])
+	    tmpX = fluidBoundaries[4*i+0] - L*epsilon;
+	else
+	    tmpX = fluidBoundaries[4*i+0];
+
+	if (initY > fluidBoundaries[4*i+1])
+	    tmpY = fluidBoundaries[4*i+1] + L*epsilon;
+	else if (initY < fluidBoundaries[4*i+1])
+	    tmpY = fluidBoundaries[4*i+1] - L*epsilon;
+	else
+	    tmpY = fluidBoundaries[4*i+1];
+	
+	// move initX and initY to the lowest left-most corner, as long as it doesn't move past the wall boundary
+	if ((tmpY < initY || (tmpY == initY && tmpX < initX)) &&
+	    !mpsCrossesWallBoundary(wallSegments, nWallSegments, origX, origY, tmpX, tmpY)) {
+	    initX = fluidBoundaries[4*i+0];
+	    initY = fluidBoundaries[4*i+1];
+	}
+	
+	if (initX > fluidBoundaries[4*i+2])
+	    tmpX = fluidBoundaries[4*i+2] + L*epsilon;
+	else if (initX < fluidBoundaries[4*i+2])
+	    tmpX = fluidBoundaries[4*i+2] - L*epsilon;
+	else
+	    tmpX = fluidBoundaries[4*i+2];
+
+	if (initY > fluidBoundaries[4*i+3])
+	    tmpY = fluidBoundaries[4*i+3] + L*epsilon;
+	else if (initY < fluidBoundaries[4*i+3])
+	    tmpY = fluidBoundaries[4*i+3] - L*epsilon;
+	else
+	    tmpY = fluidBoundaries[4*i+3];
+	
+	if ((tmpY < initY || (tmpY == initY && tmpX < initX)) &&
+	    !mpsCrossesWallBoundary(wallSegments, nWallSegments, origX, origY, tmpX, tmpY)) {
+	    initX = fluidBoundaries[4*i+2];
+	    initY = fluidBoundaries[4*i+3];
+	}
+    }
+    
+    // check wall corners to move the initial x and y to the lowest left-most corner as long as it does not move past the fluid boundaries
+    for (int i = 0; i < nWallSegments; i++) {
+	if (initX > wallSegments[4*i+0])
+	    tmpX = wallSegments[4*i+0] + L*epsilon;
+	else if (initX < wallSegments[4*i+0])
+	    tmpX = wallSegments[4*i+0] - L*epsilon;
+	else
+	    tmpX = wallSegments[4*i+0];
+
+	if (initY > wallSegments[4*i+1])
+	    tmpY = wallSegments[4*i+1] + L*epsilon;
+	else if (initY < wallSegments[4*i+1])
+	    tmpY = wallSegments[4*i+1] - L*epsilon;
+	else
+	    tmpY = wallSegments[4*i+1];
+	
+	// move initX and initY to the lowest left-most corner, as long as it doesn't move past the wall boundary
+	if ((tmpY < initY || (tmpY == initY && tmpX < initX)) &&
+	    !mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, origX, origY, tmpX, tmpY)) {
+	    initX = wallSegments[4*i+0];
+	    initY = wallSegments[4*i+1];
+	}
+	
+	if (initX > wallSegments[4*i+2])
+	    tmpX = wallSegments[4*i+2] + L*epsilon;
+	else if (initX < wallSegments[4*i+2])
+	    tmpX = wallSegments[4*i+2] - L*epsilon;
+	else
+	    tmpX = wallSegments[4*i+2];
+
+	if (initY > wallSegments[4*i+3])
+	    tmpY = wallSegments[4*i+3] + L*epsilon;
+	else if (initY < wallSegments[4*i+3])
+	    tmpY = wallSegments[4*i+3] - L*epsilon;
+	else
+	    tmpY = wallSegments[4*i+3];
+	
+	if ((tmpY < initY || (tmpY == initY && tmpX < initX)) &&
+	    !mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, origX, origY, tmpX, tmpY)) {
+	    initX = wallSegments[4*i+2];
+	    initY = wallSegments[4*i+3];
+	}
+    }
+    
+    printf("InitX changed from %lf to %lf\n", origX, initX);
+    printf("InitY changed from %lf to %lf\n", origY, initY);*/
+
     // make a 2D array to store whether points are visited or unvisited
-    xDim = (int) round((xMax-xMin)/wallSpacing)+1;
-    yDim = (int) round((yMax-yMin)/wallSpacing)+1;
+    xDim = (int) round(2*(xMax-xMin)/wallSpacing)+1;
+    yDim = (int) round((2/sqrt(3))*(yMax-yMin)/wallSpacing)+1;
     
     visited = memNewZero(bool, xDim * yDim);
     
@@ -463,8 +623,8 @@ void mpsFloodfill(MpsPointsHd fluidPointsHd, double *fluidBoundaries,
     while (!queIsEmpty(queHd)) {
         x = quePop(queHd);
         y = quePop(queHd);
-        xInt = mpsIntegerize(xMin, x, wallSpacing);
-        yInt = mpsIntegerize(yMin, y, wallSpacing);
+        xInt = mpsXIntegerize(xMin, x, wallSpacing);
+        yInt = mpsYIntegerize(yMin, y, wallSpacing);
         visited[xInt+yInt*xDim] = true;
         
         // add the point
@@ -473,35 +633,36 @@ void mpsFloodfill(MpsPointsHd fluidPointsHd, double *fluidBoundaries,
         fluidPointsHd->pointCrds[2*fluidPointsHd->nPoints+1] = y;
         fluidPointsHd->nPoints++;
         
-        // check and add the four adjacent points to the queue
-        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
-                                     nWallSegments, x, y, x+wallSpacing, y) &&
-            !visited[(xInt+1)+yInt*xDim]) {
+        // check and add the six adjacent points in the lattice to the queue
+        if (!mpsCrossesBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
+				nWallSegments, x, y, x+wallSpacing, y) &&
+            !visited[(xInt+2)+yInt*xDim]) {
             quePush(queHd, x+wallSpacing);
             quePush(queHd, y);
             visited[(xInt+1)+yInt*xDim] = true;
         }
-        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
-                                     nWallSegments, x, y, x, y+wallSpacing) &&
-            !visited[xInt+(yInt+1)*xDim]) {
-            quePush(queHd, x);
-            quePush(queHd, y+wallSpacing);
-            visited[xInt+(yInt+1)*xDim] = true;
+        if (!mpsCrossesBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
+				nWallSegments, x, y, x+wallSpacing/2, y+wallSpacing/(2/sqrt(3))) &&
+            !visited[(xInt+1)+(yInt+1)*xDim]) {
+            quePush(queHd, x+wallSpacing/2);
+            quePush(queHd, y+wallSpacing/(2/sqrt(3)));
+            visited[(xInt+1)+(yInt+1)*xDim] = true;
         }
-        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
-                                     nWallSegments, x, y, x-wallSpacing, y) &&
-            !visited[(xInt-1)+(yInt*xDim)]) {
+        if (!mpsCrossesBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
+				nWallSegments, x, y, x-wallSpacing, y) &&
+            !visited[(xInt-2)+(yInt*xDim)]) {
             quePush(queHd, x-wallSpacing);
             quePush(queHd, y);
-            visited[(xInt-1)+(yInt*xDim)] = true;
+            visited[(xInt-2)+(yInt*xDim)] = true;
         }
-        if (!mpsCrossesFluidBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
-                                     nWallSegments, x, y, x, y-wallSpacing) &&
-            !visited[xInt+(yInt-1)*xDim]) {
-            quePush(queHd, x);
-            quePush(queHd, y-wallSpacing);
-            visited[xInt+(yInt-1)*xDim] = true;
+        if (!mpsCrossesBoundary(fluidBoundaries, nFluidBoundaries, wallSegments,
+				nWallSegments, x, y, x+wallSpacing/2, y-wallSpacing/(2/sqrt(3))) &&
+            !visited[(xInt+1)+(yInt-1)*xDim]) {
+            quePush(queHd, x+wallSpacing/2);
+            quePush(queHd, y-wallSpacing/(2/sqrt(3)));
+            visited[(xInt+1)+(yInt-1)*xDim] = true;
         }
+	// add x-..., y...	
     }
     
     queFree(queHd);
@@ -543,7 +704,11 @@ int main() {
     MpsPointsHd  fluidPointsHd; /* fluidPoints structure */
     FILE        *fin;           /* input file */
 
-    fin  = fopen("mps.in", "r");
+    fin  = fopen("/Users/farzin/MPS/dam/mps.in", "r");
+
+    assert(fin != 0x0);
+
+    printf("%p\n", fin);
 
     /*=======================================================================================
      * Input and create wall points and ghost points
@@ -624,7 +789,7 @@ int main() {
         tmp2 = mpsDist(cornersHd->pointCrds[2*(i+1)+0], cornersHd->pointCrds[2*(i+1)+1],
                        ghostPointsHd->pointCrds[2*(i+1)+0], ghostPointsHd->pointCrds[2*(i+1)+1]);
 	// the number of ghost segments needs to be even to have a even spread of points with a lattice shape
-	// divide by sqrt(2) so the distance between layers is wallSpacing/sqrt(2) so that the distance between
+	// divide by (2/sqrt(3)) so the distance between layers is wallSpacing/(2/sqrt(3)) so that the distance between
 	// the points in the hexagonal lattice is the same
         nSegs = (int)ceil(r / wallSpacing) % 2 == 1 ? ceil(r / wallSpacing)+1 : ceil(r / wallSpacing);
         dx1 = (ghostPointsHd->pointCrds[2*i+0] - cornersHd->pointCrds[2*i+0]) / nSegs;
@@ -632,7 +797,7 @@ int main() {
         dx2 = (ghostPointsHd->pointCrds[2*(i+1)+0] - cornersHd->pointCrds[2*(i+1)+0]) / nSegs;
         dy2 = (ghostPointsHd->pointCrds[2*(i+1)+1] - cornersHd->pointCrds[2*(i+1)+1]) / nSegs;
 
-	printf("Wall Segment %d:\n", i);
+	/*printf("Wall Segment %d:\n", i);
 	
 	printf("\tdx1:       %lf\n", dx1*nSegs);
 	printf("\tdx1/nSegs: %lf\n", dx1);
@@ -644,7 +809,7 @@ int main() {
 	printf("\tdx2/nSegs: %lf\n", dx2);
 	
 	printf("\tdy2:       %lf\n", dy2*nSegs);
-	printf("\tdy2/nSegs: %lf\n", dy2);
+	printf("\tdy2/nSegs: %lf\n", dy2);*/
 	
         // for each two corner and ghostPoint pairs, there are nSegs lines between them which comprise the ghost points
 	// indent alternating segments so they form a stronger lattice instead of an aligned square pattern
@@ -659,8 +824,8 @@ int main() {
             tmpArray[2] = cornersHd->pointCrds[2*(i+1)+0] + j*dx2 + (j%2==1 ? dx/(2*nPoints) : 0);
             tmpArray[3] = cornersHd->pointCrds[2*(i+1)+1] + j*dy2 + (j%2==1 ? dy/(2*nPoints) : 0);
 
-	    printf("for j = %d:\n", j);
-	    printf("\t%lf, %lf -- %lf, %lf\n", tmpArray[0], tmpArray[1], tmpArray[2], tmpArray[3]);
+	    /*printf("for j = %d:\n", j);
+	      printf("\t%lf, %lf -- %lf, %lf\n", tmpArray[0], tmpArray[1], tmpArray[2], tmpArray[3]);*/
 
 	    mpsConstructIntermediatePoints(tmpArray,      2,           nPoints,
 					   ghostPointsHd, wallSpacing, true,    j%2==0);
@@ -692,7 +857,7 @@ int main() {
     
     // check if the boundary is closed
     if (!mpsCheckClosure(fluidBoundaries, nFluidBoundaries)) {
-        printf("The given fluid boundaries are not closed.");
+        printf("The given fluid boundaries are not closed.\n");
         exit(0);
     }
 
@@ -758,6 +923,7 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
     double      *yVelStar;      /* the y velocity correction based on the pressure */
     double       limX;          /* limit the update */
     int          n;             /* a count */
+    double       m;             /* a count */
     int          nPoints;       /* total number of points */
     int          offSet;        /* point offset */
     int          nFluidPoints;  /* the total number of fluid points */
@@ -774,21 +940,38 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
     limX = 0.5 * wallSpacing;
 
 /*---------------------------------------------------------------------------------------
- * Get a measure of density number
+ * Get a measure of density number of an interior point
  *---------------------------------------------------------------------------------------
  */
     dNum0 = 0;
-    n = (int) (radius / wallSpacing);
+    n = (int) ((2/sqrt(3)) * radius / wallSpacing);
     for (int i = -n; i <= n; i++) {
-        for (int j = -n; j <= n; j++) {
-            dx     = i * wallSpacing;
-            dy     = j * wallSpacing;
-            dr     = sqrt(dx*dx + dy*dy);
-            dNum0 += stnWeight(dr, radius);
-        }
+	printf("for i = %d\n", i);
+	m = (abs(i)%2==1) ? 0.5*wallSpacing : 0;
+	printf("\tpositive m: \n");
+	while (sqrt((m*m)+(i*2*wallSpacing/sqrt(3)*i*2*wallSpacing/sqrt(3))) < radius) {
+	    dx = m;
+	    dy = i*wallSpacing/(2/sqrt(3));
+	    dr = sqrt(dx*dx + dy*dy);
+	    printf("\t\tx, y: %g, %g; dr: %g; weight: %g\n", dx, dy, dr, stnWeight(dr, radius));
+	    dNum0 += stnWeight(dr, radius);
+	    
+	    m += wallSpacing;
+	}
+	m = (abs(i)%2==1) ? -0.5*wallSpacing : -wallSpacing;
+	printf("\tnegative m: \n");
+	while (sqrt((m*m)+(i*2*wallSpacing/sqrt(3)*i*2*wallSpacing/sqrt(3))) < radius) {
+	    dx = m;
+	    dy = i*wallSpacing/(2/sqrt(3));
+	    dr = sqrt(dx*dx + dy*dy);
+	    printf("\t\tx, y: %g, %g; dr: %g; weight: %g\n", dx, dy, dr, stnWeight(dr, radius));
+	    dNum0 += stnWeight(dr, radius);
+	    
+	    m -= wallSpacing;
+	}
     }
-    printf("Wall spacing num dens. = %g\n", dNum0);
-
+    printf("Interior point num dens. = %g\n", dNum0);
+    
 /*---------------------------------------------------------------------------------------
  * Allocate arrays
  *---------------------------------------------------------------------------------------
@@ -856,18 +1039,28 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
     stnHd->n0 = (stnHd->n0+dNum0)/2;
     printf("Initial number density = %g\n", stnHd->n0);
 
+    // print stnHd
+    /*for (int i = 0; i < nFluidPoints; i++) {
+	printf("for point %d; pos %lf, %lf; dnum %lf\n", i, xPosCurr[i], yPosCurr[i], stnHd->dNum[i]);
+	for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
+	    int j = stnHd->row[k];
+	    printf("\t%lf, %lf; dist: %lf \n", xPosCurr[j], yPosCurr[j], stnHd->dist[k]);
+	}
+    }*/
+
 /*---------------------------------------------------------------------------------------
  * Smooth the initial condition
  *---------------------------------------------------------------------------------------
  */
-//mpsOutCrdXY("x0.dat", xPosCurr, yPosCurr, nPoints);
-//    slvSmoothInit(stnHd, xPosCurr, yPosCurr, xPosStar, yPosStar);
-//mpsOutCrdXY("x1.dat", xPosCurr, yPosCurr, nPoints);
+    // mpsOutCrdXY("x0.dat", xPosCurr, yPosCurr, nPoints);
+    // slvSmoothInit(stnHd, xPosCurr, yPosCurr, xPosStar, yPosStar);
+    // mpsOutCrdXY("x1.dat", xPosCurr, yPosCurr, nPoints);
 
 /*---------------------------------------------------------------------------------------
  * Loop over the time steps
  *---------------------------------------------------------------------------------------
  */
+    printf("Calculating for %d time-steps\n", nTimeSteps);
     for (int stepId = 0; stepId < nTimeSteps; stepId++) {
 
         printf("===============> Processing time step %d ; time increment %g\n", 
@@ -882,7 +1075,7 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
         if (stepId == 0) mpsOutCrd("density.dat", stnHd->dNum, nFluidPoints, 1);
 
         snprintf(buffer, sizeof(buffer), "mps.dens.%d.out", stepId+1);
-        if(stepId%10==9)mpsOutCrd(buffer, stnHd->dNum, nFluidPoints, 1);
+        if (stepId%10==9) mpsOutCrd(buffer, stnHd->dNum, nFluidPoints, 1);
 
 /*---------------------------------------------------------------------------------------
  * Advance the explicit part
@@ -894,7 +1087,7 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
         l2Norm = mps2VecL2(xVelStar, yVelStar, nFluidPoints);
         // printf("Explicit vel. L2 norm  = %g\n", l2Norm);
 
-	if (l2Norm > 100.) exit(1);
+	// if (l2Norm > 100.) exit(1);
 
         for (int i = 0; i < nPoints; i++) {
             xPosStar[i] = xPosCurr[i] + LIM(dt*xVelStar[i], limX);
@@ -911,7 +1104,7 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
                         dt,       density);
 
         snprintf(buffer, sizeof(buffer), "mps.pres.%d.out", stepId+1);
-        if(stepId%10==9)mpsOutCrd(buffer, presNext, nFluidPoints, 1);
+        if (stepId%10==9) mpsOutCrd(buffer, presNext, nFluidPoints, 1);
 
 /*---------------------------------------------------------------------------------------
  * Correct the velocity
@@ -937,17 +1130,17 @@ int mpsDriver(MpsPointsHd fluidPointsHd, MpsPointsHd wallPointsHd, MpsPointsHd g
         l2Norm = mps2VecL2(xVelNext, yVelNext, nFluidPoints);
         // printf("Implicit vel. L2 norm  = %g\n", l2Norm);
 
-	if (l2Norm > 100.) exit(1);
+	// if (l2Norm > 100.) exit(1);
 
 /*---------------------------------------------------------------------------------------
  * Output the data
  *---------------------------------------------------------------------------------------
  */
         snprintf(buffer, sizeof(buffer), "mps.%d.out", stepId+1);
-        if(stepId%10==9)mpsOutCrdXY(buffer, xPosNext, yPosNext, nFluidPoints);
+        if (stepId%10==9) mpsOutCrdXY(buffer, xPosNext, yPosNext, nFluidPoints);
 
         snprintf(buffer, sizeof(buffer), "mps.vel.%d.out", stepId+1);
-        if(stepId%10==9)mpsOutCrdXY(buffer, xVelCurr, yVelCurr, nFluidPoints);
+        if (stepId%10==9) mpsOutCrdXY(buffer, xVelCurr, yVelCurr, nFluidPoints);
 
 /*---------------------------------------------------------------------------------------
  * Reset the vectors
