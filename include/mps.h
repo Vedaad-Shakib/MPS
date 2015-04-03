@@ -46,7 +46,7 @@ void		mpsFreePoints(MpsPointsHd PointsHd);
  */
 
 void   mpsOutCrd(char *fileName, double *crd, int nPoints, int nDims);
-void mpsOutCrdXY(char *fileName, double *xCrd, double *yCrd,
+void   mpsOutCrdXY(char *fileName, double *xCrd, double *yCrd,
                  int   nPoints);
 double mpsVecL2(double *vec, int nDims);
 double mps2VecL2(double *vec1, double *vec2, int nDims);
