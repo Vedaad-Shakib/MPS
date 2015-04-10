@@ -75,5 +75,5 @@ void   mpsFloodfill(MpsPointsHd fluidPointsHd,    double *fluidBoundaries, int  
 		    double      initY,            double  wallSpacing);
 MpsHd  mpsRead();
 int    main();
-int    mpsDriver(MpsHd mpsHd);
+void   mpsDriver(MpsHd mpsHd);
 

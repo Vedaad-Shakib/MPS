@@ -28,7 +28,7 @@
  * "mpsDriver": MPS time stepping driver
  *******************************************************************************
  */
-int mpsDriver(MpsHd mpsHd) {
+void mpsDriver(MpsHd mpsHd) {
     StnHd        stnHd;         /* an adjacency structure */
     char         buffer[1024];  /* a string buffer */
     double       dNum0;         /* wall spacing based mpsHd->density number */
@@ -75,25 +75,20 @@ int mpsDriver(MpsHd mpsHd) {
     dNum0 = 0;
     n = (int) ((2/sqrt(3)) * mpsHd->radius / mpsHd->wallSpacing);
     for (int i = -n; i <= n; i++) {
-	printf("for i = %d\n", i);
 	m = (abs(i)%2==1) ? 0.5*mpsHd->wallSpacing : 0;
-	printf("\tpositive m: \n");
 	while (sqrt((m*m)+(i*2*mpsHd->wallSpacing/sqrt(3)*i*2*mpsHd->wallSpacing/sqrt(3))) < mpsHd->radius) {
 	    dx = m;
 	    dy = i*mpsHd->wallSpacing/(2/sqrt(3));
 	    dr = sqrt(dx*dx + dy*dy);
-	    printf("\t\tx, y: %g, %g; dr: %g; weight: %g\n", dx, dy, dr, stnWeight(dr, mpsHd->radius));
 	    dNum0 += stnWeight(dr, mpsHd->radius);
 	    
 	    m += mpsHd->wallSpacing;
 	}
 	m = (abs(i)%2==1) ? -0.5*mpsHd->wallSpacing : -mpsHd->wallSpacing;
-	printf("\tnegative m: \n");
 	while (sqrt((m*m)+(i*2*mpsHd->wallSpacing/sqrt(3)*i*2*mpsHd->wallSpacing/sqrt(3))) < mpsHd->radius) {
 	    dx = m;
 	    dy = i*mpsHd->wallSpacing/(2/sqrt(3));
 	    dr = sqrt(dx*dx + dy*dy);
-	    printf("\t\tx, y: %g, %g; dr: %g; weight: %g\n", dx, dy, dr, stnWeight(dr, mpsHd->radius));
 	    dNum0 += stnWeight(dr, mpsHd->radius);
 	    
 	    m -= mpsHd->wallSpacing;
@@ -283,6 +278,4 @@ int mpsDriver(MpsHd mpsHd) {
             presCurr[i] = presNext[i];
         }
     }
-        
-    return 0;
 }
