@@ -160,6 +160,7 @@ void mpsDriver(MpsHd mpsHd) {
     stnHd = stnNew(nFluidPoints, nWallPoints, mpsHd->radius, mpsHd->beta);
 
     stnPopulate(stnHd, xPosCurr, yPosCurr);
+    stnCalc(stnHd, xPosCurr, yPosCurr);
     stnHd->n0 = (stnHd->n0+dNum0)/2;
     printf("Initial number mpsHd->density = %g\n", stnHd->n0);
 
@@ -195,6 +196,7 @@ void mpsDriver(MpsHd mpsHd) {
  *---------------------------------------------------------------------------------------
  */
         stnPopulate(stnHd, xPosCurr, yPosCurr);
+	stnCalc(stnHd, xPosCurr, yPosCurr);
 
         if (stepId == 0) mpsOutCrd("mpsHd->density.dat", stnHd->dNum, nFluidPoints, 1);
 
@@ -221,7 +223,7 @@ void mpsDriver(MpsHd mpsHd) {
  * Compute the pressure
  *---------------------------------------------------------------------------------------
  */
-        //stnRecalc(stnHd, xPosStar, yPosStar);
+        //stnCalc(stnHd, xPosStar, yPosStar);
 
         slvCalcPressure(stnHd,    xPosStar, yPosStar,
                         xVelStar, yVelStar, presNext,
