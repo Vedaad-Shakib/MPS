@@ -15,7 +15,7 @@ def plot(*steps):
 	i = (i+1) % _nColors
     mpsPlot( ps )
 
-def anim( end, inc=20, beg=0, wait=0.2 ):
+def anim(end, inc=20, beg=0, wait=0.2):
     for i in range(beg,end,inc):
 	plot(i)
 	time.sleep(wait)

@@ -46,5 +46,5 @@ StnHd stnNew(int nFluidPoints, int nWallPoints,
 		  double radius,  double  beta);
 double stnWeight(double dist, double radius) ;
 void  stnPopulate(StnHd  stnHd,   double *xCrd, double *yCrd);
-void  stnRecalc(StnHd stnHd, double *xCrd, double *yCrd);
+void  stnCalc(StnHd stnHd, double *xCrd, double *yCrd);
 void  stnFree(StnHd stnHd);
