@@ -34,17 +34,17 @@ def findMarker(i):
     return "o"
 
 class Window(QtGui.QDialog):
-    def __init__(self, increment=10, nSteps=30, timestep=0.0004, parent=None):
-        # note: timestep is per frame of actual simulation and measured in seconds. it is scaled based on the increment
+    def __init__(self, increment=10, nSteps=500, timestep=0.0004, parent=None):
         super(Window, self).__init__(parent)
 
         # frame increment
         self.increment = increment
         self.nSteps = nSteps
-        self.timestep = increment*timestep*1000
+        self.timestep = timestep # in seconds
         
         # a figure instance to plot on
         self.figure = plt.figure()
+        self.ax1 = self.figure.add_subplot(1, 1, 1)
 
         # this is the Canvas Widget that displays the `figure`
         # it takes the `figure` instance as a parameter to __init__
@@ -72,43 +72,29 @@ class Window(QtGui.QDialog):
         # connects timer to dynamic plot
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.updatePlot)
-        self.timer.start(100)
+        self.timer.start(1)
 
     def updatePlot(self):
         if self.index > self.increment*self.nSteps:
+            print "asdfadf"
             self.timer.stop()
             return
         
         data = [["ghost_points.dat", "green"], ["wall_points.dat", "red"], [("mps.%s.out") % self.index, "blue"]]
         self.index += self.increment
         
-        # data[i][0] is fileName
-        # options include "line", "point", "circle", "x", "dot", "red", "blue", "green"
-        plt.clf() # clear plt
+        self.ax1.cla() # clear axes
         
-        if type(data) == types.StringType:
-            data = [data]
-            
-        if type(data) == types.ListType and len(data) > 0 and type(data[0]) == types.StringType:
-            data = [data]
-                
         for i in data:
-            # error handling
-            if type(i) == types.StringType:
-                i = [i, "point"]
-                
-            # parse options
-            # color
             color = findColor(i)
-            # markersize
             markersize = findSize(i)
-            # marker type
             marker = findMarker(i)
             
             m = re.match("mps.([0-9]+).out", i[0])
             if m:
                 step = int(m.group(1))
-                title = "Time = %.4g" % (0.001 * step)
+                title = "Time = %.4g" % (self.timestep * step)
+                self.ax1.set_title(title)
             file = open(i[0], "r")
             x = []
             y = []
@@ -117,16 +103,10 @@ class Window(QtGui.QDialog):
                 x.append(tmp[0])
                 y.append(tmp[1])
                 
-            if "line" in i:
-                plt.plot(x, y, c=color, linewidth=markersize, marker=marker)
-            if "point" in i:
-                plt.scatter(x, y, c=color, s=markersize, marker=marker)
-            if not "line" in i and not "point" in i:
-                plt.scatter(x, y, c=color, s=markersize, marker=marker)
-                                        
-        #plt.suptitle(title)
-        #plt.axes().set_aspect('equal')
-        
+            self.ax1.scatter(x, y, c=color, s=markersize, marker=marker)
+
+        '''self.ax1.cla()
+        self.ax1.scatter(range(10), [random.randint(1, 10) for i in range(10)])'''
         self.canvas.draw()
 
 def mpsPlot():
