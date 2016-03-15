@@ -81,7 +81,7 @@ void mpsDriver(MpsHd mpsHd) {
 	    dy = i*mpsHd->wallSpacing/(2/sqrt(3));
 	    dr = sqrt(dx*dx + dy*dy);
 	    dNum0 += stnWeight(dr, mpsHd->radius);
-	    
+
 	    m += mpsHd->wallSpacing;
 	}
 	m = (abs(i)%2==1) ? -0.5*mpsHd->wallSpacing : -mpsHd->wallSpacing;
@@ -202,61 +202,6 @@ void mpsDriver(MpsHd mpsHd) {
 
         snprintf(buffer, sizeof(buffer), "mps.dens.%d.out", stepId+1);
         if (stepId%10==9) mpsOutCrd(buffer, stnHd->dNum, nFluidPoints, 1);
-
-/*---------------------------------------------------------------------------------------
- * Advance the explicit part
- *---------------------------------------------------------------------------------------
- */
-        slvCalcExplicitVelocity(stnHd, xVelCurr, xVelStar, mpsHd->viscosity, mpsHd->dt, 0);
-        slvCalcExplicitVelocity(stnHd, yVelCurr, yVelStar, mpsHd->viscosity, mpsHd->dt, -9.8);
-
-        l2Norm = mps2VecL2(xVelStar, yVelStar, nFluidPoints);
-        // printf("Explicit vel. L2 norm  = %g\n", l2Norm);
-
-	// if (l2Norm > 100.) exit(1);
-
-        for (int i = 0; i < nPoints; i++) {
-            xPosStar[i] = xPosCurr[i] + LIM(mpsHd->dt*xVelStar[i], limX);
-            yPosStar[i] = yPosCurr[i] + LIM(mpsHd->dt*yVelStar[i], limX);
-        }
-/*---------------------------------------------------------------------------------------
- * Compute the pressure
- *---------------------------------------------------------------------------------------
- */
-        //stnCalc(stnHd, xPosStar, yPosStar);
-
-        slvCalcPressure(stnHd,    xPosStar, yPosStar,
-                        xVelStar, yVelStar, presNext,
-                        mpsHd->dt,       mpsHd->density);
-
-        snprintf(buffer, sizeof(buffer), "mps.pres.%d.out", stepId+1);
-        if (stepId%10==9) mpsOutCrd(buffer, presNext, nFluidPoints, 1);
-
-/*---------------------------------------------------------------------------------------
- * Correct the velocity
- *---------------------------------------------------------------------------------------
- */
-        slvCalcCorrection(stnHd,       presNext, xVelNext,
-                          xPosCurr,    mpsHd->density,  mpsHd->dt);
-        slvCalcCorrection(stnHd,       presNext, yVelNext,
-                          yPosCurr,    mpsHd->density,  mpsHd->dt);
-        
-/*---------------------------------------------------------------------------------------
- * Update the values
- *---------------------------------------------------------------------------------------
- */
-        for (int i = 0; i < nPoints; i++) {
-            xVelNext[i] = xVelNext[i] + xVelStar[i];
-            yVelNext[i] = yVelNext[i] + yVelStar[i];
-            
-            xPosNext[i] = xPosCurr[i] + LIM(mpsHd->dt*xVelNext[i],limX);
-            yPosNext[i] = yPosCurr[i] + LIM(mpsHd->dt*yVelNext[i],limX);
-        }
-
-        l2Norm = mps2VecL2(xVelNext, yVelNext, nFluidPoints);
-        // printf("Implicit vel. L2 norm  = %g\n", l2Norm);
-
-	// if (l2Norm > 100.) exit(1);
 
 /*---------------------------------------------------------------------------------------
  * Output the data

@@ -21,9 +21,9 @@ typedef struct _MpsPoints {
 typedef MpsPoints* MpsPointsHd;
 
 typedef struct _Mps {
-    MpsPointsHd	fluidPointsHd;	/* the struct of fluid points */
-    MpsPointsHd	wallPointsHd;	/* the struct of wall points */
-    MpsPointsHd	ghostPointsHd;	/* the struct of ghost points */
+    MpsPointsHd	fluidPointsHd;	/* the struct pointer of fluid points */
+    MpsPointsHd	wallPointsHd;	/* the struct pointer of wall points */
+    MpsPointsHd	ghostPointsHd;	/* the struct pointer of ghost points */
     double	radius;		/* the radius of influence */
     double	wallSpacing;	/* the spacing between points */
     double	beta;		/* the free-surface constant beta */

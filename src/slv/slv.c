@@ -27,14 +27,13 @@ double slvCalcGradient(StnHd stnHd, double *vec, double *pos, int i) {
 
     grad = 0;
     minVec = vec[i];
-    if (true) {
-	for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
-	    int j = stnHd->row[k];
-	    if (vec[j] < minVec) {
-		minVec = vec[j];
-	    }
+    for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
+	int j = stnHd->row[k];
+	if (vec[j] < minVec) {
+	    minVec = vec[j];
 	}
     }
+    
     minVec = (1*minVec + vec[i])/2;
     for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
 	int j = stnHd->row[k];
@@ -255,18 +254,21 @@ void slvSmoothInit(StnHd   stnHd, double *xPos, double *yPos,
     double	y;
 
     for (int i = 0; i < stnHd->nFluidPoints; i++) {
-	if ( stnHd->freeSurf[i] ) {
+	// fill pos 2 with only free surface points
+	if (stnHd->freeSurf[i]) {
 	    xPos2[i] = xPos[i];
 	    yPos2[i] = yPos[i];
 	    continue;
 	}
 	x = 0;
 	y = 0;
+	// iterate through adjacent points
 	for (int k = stnHd->col[i]; k < stnHd->col[i+1]; k++) {
 	    int j = stnHd->row[k];
 	    x += xPos[j];
 	    y += yPos[j];
 	}
+	// assign pos2 to the average of boundaries
 	xPos2[i] = x / (stnHd->col[i+1] - stnHd->col[i]);
 	yPos2[i] = y / (stnHd->col[i+1] - stnHd->col[i]);
     }

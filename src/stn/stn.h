@@ -22,8 +22,8 @@ typedef struct {
     double      *weights;       /* the weights of each adjacent point */
     double      *dist;          /* the distance between each point */
     double      *dNum;          /* the density number of each point */
-    double	*lhs;		/* the LHS matrix for pressure */
-    double	*rhs;		/* the RES vector for pressure */
+    double	*lhs;		/* the LHS matrix for pressure poisson equation */
+    double	*rhs;		/* the RES vector for pressure poisson equation */
     int         *diagIndex;     /* the index of the diagonals in the LHS matrix */
     int		*freeSurf;	/* the free surface flag */
     int          nPoints;       /* the number of points that stnHd contains */
